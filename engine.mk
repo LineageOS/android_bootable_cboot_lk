@@ -48,7 +48,7 @@ APPEND_VERSION := python2 $(LKROOT)/scripts/add_version_info.py
 GLOBAL_INCLUDES := $(BUILDDIR) $(LKROOT)/include $(addsuffix /include,$(LKINC))
 GLOBAL_OPTFLAGS ?= -Os
 GLOBAL_COMPILEFLAGS := -g -fno-builtin -finline -W -Wall -Wno-multichar -Wno-unused-parameter -Wno-unused-function -include $(CONFIGHEADER)
-GLOBAL_CFLAGS := --std=gnu99 -Werror-implicit-function-declaration -Wstrict-prototypes
+GLOBAL_CFLAGS := --std=gnu11 -Werror-implicit-function-declaration -Wstrict-prototypes
 GLOBAL_CFLAGS += -Werror=strict-prototypes -Werror=unused-label -Werror=int-to-pointer-cast -Werror=address
 GLOBAL_CFLAGS += -Werror=array-bounds -Werror=char-subscripts -Werror=enum-compare
 GLOBAL_CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration -Werror=comment
@@ -68,7 +68,7 @@ GLOBAL_CFLAGS += -Wno-missing-field-initializers
 # GCC 9.3 does not like cboot boot_params alignment
 GLOBAL_CFLAGS += -Wno-error=address-of-packed-member
 
-GLOBAL_CPPFLAGS := -fno-exceptions -fno-rtti -fno-threadsafe-statics
+GLOBAL_CPPFLAGS := --std=c++11 -fno-exceptions -fno-rtti -fno-threadsafe-statics
 #GLOBAL_CPPFLAGS += -Weffc++
 GLOBAL_ASMFLAGS := -DASSEMBLY
 GLOBAL_LDFLAGS :=
