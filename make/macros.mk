@@ -4,11 +4,8 @@ GET_LOCAL_DIR    = $(patsubst %/,%,$(dir $(word $(words $(MAKEFILE_LIST)),$(MAKE
 # makes sure the target dir exists
 MKDIR = if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
 
-# relative-path from TEGRA_TOP
-LOCALIZE_DIR = $(subst $(abspath $(TEGRA_TOP))/,,$(abspath $(1)))
-
-# absolute path to build-dir
-TOBUILDDIR = $(abspath $(addprefix $(BUILDDIR)/,$(call LOCALIZE_DIR,$(1))))
+# prepends the BUILD_DIR var to each item in the list
+TOBUILDDIR = $(addprefix $(BUILDDIR)/,$(1))
 
 COMMA := ,
 SPACE :=
@@ -33,7 +30,7 @@ endef
 # generate a header file at $1 with an expanded variable in $2
 define MAKECONFIGHEADER
 	$(MKDIR); \
-	echo generating $(call LOCALIZE_DIR,$1); \
+	echo generating $1; \
 	rm -f $1.tmp; \
 	LDEF=`echo $1 | tr '/\\.-' '_'`; \
 	echo \#ifndef __$${LDEF}_H > $1.tmp; \

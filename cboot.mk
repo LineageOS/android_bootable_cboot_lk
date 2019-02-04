@@ -37,7 +37,6 @@ $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
 		BUILDROOT=$(_cboot_intermediates) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
-		TEGRA_TOP=$(abspath $(TEGRA_TOP)) \
 		DEBUG=2 \
 		-C $(LOCAL_PATH)
 
