@@ -38,7 +38,7 @@ $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
 endif
 
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
-		BUILDROOT=$(PWD)/$(_cboot_intermediates) \
+		BUILDROOT=$(_cboot_intermediates) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
 		TEGRA_TOP=$(abspath $(TEGRA_TOP)) \
