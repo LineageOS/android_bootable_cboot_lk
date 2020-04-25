@@ -133,6 +133,7 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 	return AVB_IO_RESULT_OK;
 }
 
+#if 0
 static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
 								   size_t size, uint8_t *digest,
 								   const char *algorithm)
@@ -176,6 +177,7 @@ static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
 
 	return AVB_IO_RESULT_OK;
 }
+#endif
 
 /* Compare the keys k1 and k2. They are both expected to be in little endian
  * format
@@ -219,6 +221,7 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 
 bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 {
+#if 0
 	uint8_t i;
 
 	/* Any public key set in AvbSlotVerifyData struct is mismatching the signing
@@ -228,6 +231,7 @@ bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 			return true;
 		}
 	}
+#endif
 	return false;
 }
 
@@ -260,7 +264,9 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 	/* Use libavb API to verify the boot */
 	ops.read_from_partition = read_from_partition;
 	ops.read_is_device_unlocked = is_device_unlocked;
+#if 0
 	ops.hash_salt_image = hash_salt_image;
+#endif
 	ops.validate_vbmeta_public_key = validate_vbmeta_public_key;
 	ops.get_unique_guid_for_partition = get_unique_guid_for_partition;
 
@@ -326,8 +332,10 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 	status_t ret = NO_ERROR;
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	boot_state_t bs;
+#if 0
 	struct root_of_trust r_o_t_params = {0};
 	uint8_t i;
+#endif
 
 	/* DTBO is not enabled in verified boot 1.0 in Android N */
 	TEGRABL_UNUSED(kernel_dtbo);
@@ -344,6 +352,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		panic("An error occured in verified boot module.\n");
 	}
 
+#if 0
 	r_o_t_params.magic_header = MAGIC_HEADER;
 	r_o_t_params.version = VERSION;
 
@@ -385,6 +394,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		err = TEGRABL_ERROR(TEGRABL_ERR_COMMAND_FAILED, 0);
 		goto fail;
 	}
+#endif
 
 	bs_str = (bs == VERIFIED_BOOT_RED_STATE) ? "red" :
 			 (bs == VERIFIED_BOOT_YELLOW_STATE) ? "yellow" :
