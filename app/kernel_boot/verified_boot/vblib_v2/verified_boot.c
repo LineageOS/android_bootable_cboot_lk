@@ -133,7 +133,7 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 	return AVB_IO_RESULT_OK;
 }
 
-static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
+/*static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
 								   size_t size, uint8_t *digest,
 								   const char *algorithm)
 {
@@ -148,7 +148,7 @@ static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
 	TEGRABL_ASSERT(digest);
 
 #if defined(IS_T186)
-	/* Vbmeta hash algorithm: SHA256, SHA512 */
+	// Vbmeta hash algorithm: SHA256, SHA512
 	if (!strcmp(algorithm, "sha512")) {
 		sha_context.hash_algorithm = SE_SHAMODE_SHA512;
 	} else if (!strcmp(algorithm, "sha256")) {
@@ -175,7 +175,7 @@ static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
 	}
 
 	return AVB_IO_RESULT_OK;
-}
+}*/
 
 /* Compare the keys k1 and k2. They are both expected to be in little endian
  * format
@@ -219,15 +219,15 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 
 bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 {
-	uint8_t i;
+	//uint8_t i;
 
 	/* Any public key set in AvbSlotVerifyData struct is mismatching the signing
 	 * key */
-	for (i = 0; i < slot_data->num_vbmeta_images; i++) {
+	/*for (i = 0; i < slot_data->num_vbmeta_images; i++) {
 		if (slot_data->vbmeta_images[i].pub_key != NULL) {
 			return true;
 		}
-	}
+	}*/
 	return false;
 }
 
@@ -260,7 +260,7 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 	/* Use libavb API to verify the boot */
 	ops.read_from_partition = read_from_partition;
 	ops.read_is_device_unlocked = is_device_unlocked;
-	ops.hash_salt_image = hash_salt_image;
+	//ops.hash_salt_image = hash_salt_image;
 	ops.validate_vbmeta_public_key = validate_vbmeta_public_key;
 	ops.get_unique_guid_for_partition = get_unique_guid_for_partition;
 
@@ -326,8 +326,8 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 	status_t ret = NO_ERROR;
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	boot_state_t bs;
-	struct root_of_trust r_o_t_params = {0};
-	uint8_t i;
+	/*struct root_of_trust r_o_t_params = {0};
+	uint8_t i;*/
 
 	/* DTBO is not enabled in verified boot 1.0 in Android N */
 	TEGRABL_UNUSED(kernel_dtbo);
@@ -344,7 +344,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		panic("An error occured in verified boot module.\n");
 	}
 
-	r_o_t_params.magic_header = MAGIC_HEADER;
+	/*r_o_t_params.magic_header = MAGIC_HEADER;
 	r_o_t_params.version = VERSION;
 
 	if (slot_data != NULL) {
@@ -361,18 +361,18 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		}
 	}
 
-	r_o_t_params.verified_boot_state = bs;
+	r_o_t_params.verified_boot_state = bs*/;
 
 	/* Flush these bytes so that the monitor can access them */
-	tegrabl_arch_clean_dcache_range((addr_t)&r_o_t_params,
-									sizeof(struct root_of_trust));
+	//tegrabl_arch_clean_dcache_range((addr_t)&r_o_t_params,
+	//								sizeof(struct root_of_trust));
 
 	/* Passing the address directly works because VMEM=PMEM in Cboot.
 	 * If this assumption changes, we need to explicitly convert the
 	 * virtual adddress to a physical address prior to the smc_call.
 	 * Re-attempt the smc if it receives SM_ERR_INTERRUPTED.
 	 */
-	ret = smc_call(SMC_SET_ROOT_OF_TRUST, (uintptr_t)&r_o_t_params,
+	/*ret = smc_call(SMC_SET_ROOT_OF_TRUST, (uintptr_t)&r_o_t_params,
 				   sizeof(struct root_of_trust));
 	while (ret == SM_ERR_INTERRUPTED) {
 		pr_info("SMC Call Interrupted, retry with smc # %x\n",
@@ -384,7 +384,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		pr_error("Failed to pass verified boot params: %x\n", ret);
 		err = TEGRABL_ERROR(TEGRABL_ERR_COMMAND_FAILED, 0);
 		goto fail;
-	}
+	}*/
 
 	bs_str = (bs == VERIFIED_BOOT_RED_STATE) ? "red" :
 			 (bs == VERIFIED_BOOT_YELLOW_STATE) ? "yellow" :
