@@ -8,8 +8,8 @@ MKDIR = if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
 TOBUILDDIR = $(addprefix $(BUILDDIR)/,$(1))
 
 COMMA := ,
-SPACE :=
-SPACE +=
+E :=
+SPACE := $E $E
 
 # test if two files are different, replacing the first
 # with the second if so
