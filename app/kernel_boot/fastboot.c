@@ -586,7 +586,6 @@ tegrabl_error_t tegrabl_fastboot_set_callbacks(void)
 	oem_ops->is_device_unlocked = tegrabl_odmdata_is_device_unlocked;
 	oem_ops->get_fuse_ecid = tegrabl_get_ecid_str;
 
-#if defined(IS_T186)
 	a_b_ops->get_current_slot = fastboot_a_b_get_current_slot;
 	a_b_ops->get_slot_num = fastboot_a_b_get_slot_num;
 	a_b_ops->get_slot_suffix = fastboot_a_b_get_slot_suffix;
@@ -594,7 +593,6 @@ tegrabl_error_t tegrabl_fastboot_set_callbacks(void)
 	a_b_ops->is_slot_unbootable = fastboot_a_b_is_slot_unbootable;
 	a_b_ops->get_slot_retry_count = fastboot_a_b_get_slot_retry_count;
 	a_b_ops->slot_set_active = fastboot_a_b_slot_set_active;
-#endif
 
 	return TEGRABL_NO_ERROR;
 }
