@@ -226,6 +226,33 @@ static AvbIOResult read_rollback_index(AvbOps* ops,
 	return AVB_IO_RESULT_OK;
 }
 
+AvbIOResult get_size_of_partition(AvbOps* ops,
+                                       const char* part_name,
+                                       uint64_t* out_size_num_bytes)
+{
+
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	struct tegrabl_partition part;
+	const struct tegrabl_fastboot_partition_info *part_info = NULL;
+	const char *tegra_part_name = NULL;
+	const char *suffix = NULL;
+
+	TEGRABL_ASSERT(part_name);
+	TEGRABL_ASSERT(out_size_num_bytes);
+
+	suffix = tegrabl_a_b_get_part_suffix(part_name);
+	part_info = tegrabl_fastboot_get_partinfo(part_name);
+	tegra_part_name = tegrabl_fastboot_get_tegra_part_name(suffix, part_info);
+
+	err = tegrabl_partition_open(tegra_part_name, &part);
+	if (err != TEGRABL_NO_ERROR) {
+		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+	}
+	*out_size_num_bytes = tegrabl_partition_size(&part);
+
+	return AVB_IO_RESULT_OK;
+}
+
 bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 {
 	//uint8_t i;
@@ -273,6 +300,7 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 	ops.validate_vbmeta_public_key = validate_vbmeta_public_key;
 	ops.get_unique_guid_for_partition = get_unique_guid_for_partition;
 	ops.read_rollback_index = read_rollback_index;
+	ops.get_size_of_partition = get_size_of_partition;
 
 	if (is_device_unlocked(&ops, &unlocked) != AVB_IO_RESULT_OK) {
 		pr_error("Failed to determine whether device is unlocked.\n");
