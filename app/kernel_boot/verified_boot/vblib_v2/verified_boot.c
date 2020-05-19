@@ -217,6 +217,15 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 	return AVB_IO_RESULT_OK;
 }
 
+static AvbIOResult read_rollback_index(AvbOps* ops,
+                                     size_t rollback_index_location,
+                                     uint64_t* out_rollback_index)
+{
+	*out_rollback_index = 0;
+
+	return AVB_IO_RESULT_OK;
+}
+
 bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 {
 	//uint8_t i;
@@ -263,6 +272,7 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 	//ops.hash_salt_image = hash_salt_image;
 	ops.validate_vbmeta_public_key = validate_vbmeta_public_key;
 	ops.get_unique_guid_for_partition = get_unique_guid_for_partition;
+	ops.read_rollback_index = read_rollback_index;
 
 	if (is_device_unlocked(&ops, &unlocked) != AVB_IO_RESULT_OK) {
 		pr_error("Failed to determine whether device is unlocked.\n");
