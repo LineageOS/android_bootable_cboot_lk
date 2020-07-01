@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -24,10 +24,13 @@ tegrabl_error_t net_boot_stack_init(void);
  *
  * @param boot_img_load_addr boot image load address (output)
  * @param dtb_load_addr dtb load address (output)
+ * @param boot_img_size pointer to boot image size buffer (output)
  *
  * @return TEGRABL_NO_ERROR on success, otherwise appropriate error
  */
-tegrabl_error_t net_boot_load_kernel_images(void ** const boot_img_load_addr, void ** const dtb_load_addr);
+tegrabl_error_t net_boot_load_kernel_images(void ** const boot_img_load_addr,
+											void ** const dtb_load_addr,
+											uint32_t * const boot_img_size);
 #endif /* CONFIG_ENABLE_ETHERNET_BOOT */
 
 #endif /* INCLUDED_NET_BOOT_H */

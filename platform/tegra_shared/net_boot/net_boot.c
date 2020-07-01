@@ -292,7 +292,8 @@ fail:
 
 static tegrabl_error_t download_kernel_from_tftp(uint8_t *tftp_server_ip,
 												 void *boot_img_load_addr,
-												 void *dtb_load_addr)
+												 void *dtb_load_addr,
+												 uint32_t *boot_img_size)
 {
 	err_t ret = 0;
 	uint32_t retry;
@@ -307,7 +308,7 @@ static tegrabl_error_t download_kernel_from_tftp(uint8_t *tftp_server_ip,
 
 	retry = 0;
 	while (retry++ < TFTP_MAX_RRQ_RETRIES) {
-		ret = tftp_client_recv(KERNEL_DTB, "octet", dtb_load_addr, DTB_MAX_SIZE);
+		ret = tftp_client_recv(KERNEL_DTB, "octet", dtb_load_addr, DTB_MAX_SIZE, NULL);
 		if (ret == ERR_OK) {
 			break;
 		} else if (ret == ERR_CONN) {
@@ -328,7 +329,7 @@ static tegrabl_error_t download_kernel_from_tftp(uint8_t *tftp_server_ip,
 
 	retry = 0;
 	while (retry++ < TFTP_MAX_RRQ_RETRIES) {
-		ret = tftp_client_recv(KERNEL_IMAGE, "octet", boot_img_load_addr, BOOT_IMAGE_MAX_SIZE);
+		ret = tftp_client_recv(KERNEL_IMAGE, "octet", boot_img_load_addr, BOOT_IMAGE_MAX_SIZE, boot_img_size);
 		if (ret == ERR_OK) {
 			break;
 		} else if (ret == ERR_CONN) {
@@ -354,7 +355,9 @@ fail:
 	return err;
 }
 
-tegrabl_error_t net_boot_load_kernel_images(void ** const boot_img_load_addr, void ** const dtb_load_addr)
+tegrabl_error_t net_boot_load_kernel_images(void ** const boot_img_load_addr,
+											void ** const dtb_load_addr,
+											uint32_t * const boot_img_size)
 {
 	struct ip_info info = {0};
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
@@ -371,7 +374,7 @@ tegrabl_error_t net_boot_load_kernel_images(void ** const boot_img_load_addr, vo
 		goto fail;
 	}
 
-	err = download_kernel_from_tftp(info.tftp_server_ip, *boot_img_load_addr, *dtb_load_addr);
+	err = download_kernel_from_tftp(info.tftp_server_ip, *boot_img_load_addr, *dtb_load_addr, boot_img_size);
 	if (err != TEGRABL_NO_ERROR) {
 		goto fail;
 	}

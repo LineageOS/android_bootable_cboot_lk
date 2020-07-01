@@ -94,7 +94,7 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	kernel->load_from_storage = true;
 
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
-									  &kernel_dtb, &callbacks, NULL);
+									  &kernel_dtb, &callbacks, NULL, 0);
 	if (err != TEGRABL_NO_ERROR) {
 		TEGRABL_SET_HIGHEST_MODULE(err);
 		pr_error("kernel boot failed\n");
