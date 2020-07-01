@@ -9,7 +9,7 @@
 #
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/drivers/crypto
+	$(LOCAL_DIR)/../../../common/drivers/crypto
 
 # Add any needed GLOBAL_DEFINES here
 GLOBAL_DEFINES += \
