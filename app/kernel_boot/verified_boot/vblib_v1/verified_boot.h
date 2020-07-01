@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017, NVIDIA Corporation.	All Rights Reserved.
+ * Copyright (c) 2015-2018, NVIDIA Corporation.	All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -21,12 +21,12 @@
  * order of level of trust for binaries verified by the bootloader
  * (Currently, boot.img and kernel-dtb)
  */
-enum boot_state {
-	VERIFIED_BOOT_RED_STATE,
-	VERIFIED_BOOT_YELLOW_STATE,
-	VERIFIED_BOOT_GREEN_STATE,
-	VERIFIED_BOOT_ORANGE_STATE,
-};
+/* macro boot state */
+typedef uint32_t boot_state_t;
+#define VERIFIED_BOOT_RED_STATE 0
+#define VERIFIED_BOOT_YELLOW_STATE 1
+#define VERIFIED_BOOT_GREEN_STATE 2
+#define VERIFIED_BOOT_ORANGE_STATE 3
 
 #define SMC_SET_ROOT_OF_TRUST 0x3200FFFF
 #define SMC_TOS_RESTART_LAST  0x3C000000
@@ -72,7 +72,7 @@ struct root_of_trust {
  */
 status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
 									  void *kernel_dtb,
-									  enum boot_state *bs,
+									  boot_state_t *bs,
 									  struct rsa_public_key *boot_pub_key,
 									  struct rsa_public_key *dtb_pub_key);
 
@@ -86,7 +86,7 @@ status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
  * @return NO_ERROR on successfully getting confirmation from user to boot in
  *					the relevant state
  */
-status_t verified_boot_ui(enum boot_state bs,
+status_t verified_boot_ui(boot_state_t bs,
 						  struct rsa_public_key *boot_pub_key,
 						  struct rsa_public_key *dtb_pub_key);
 
@@ -105,11 +105,12 @@ uint32_t smc_call(uint32_t arg0, uintptr_t arg1, uintptr_t arg2);
  *
  * @param hdr boot.img header address
  * @param kernel_dtb kernel-dtb address
+ * @param kernel_dtbo kernel-dtbo address
  *
  * @return NO_ERROR if all process is successfully, else apt error
  */
 
 tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
-							void *kernel_dtb);
+							void *kernel_dtb, void *kernel_dtbo);
 
 #endif
