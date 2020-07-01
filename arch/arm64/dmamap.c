@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -26,29 +26,15 @@ dma_addr_t tegrabl_dma_map_buffer(tegrabl_module_t module, uint8_t instance,
 								  void *buffer, size_t size,
 								  tegrabl_dma_data_direction direction)
 {
-	dma_addr_t retval;
-	uint64_t par_el1;
-	uintptr_t virt_addr;
-	TEGRABL_UNUSED(module);
 	TEGRABL_UNUSED(instance);
 
-	virt_addr = (uintptr_t)buffer;
+	if (direction & TEGRABL_DMA_TO_DEVICE) {
+		tegrabl_arch_clean_invalidate_dcache_range((uintptr_t)buffer, size);
+	} else {
+		tegrabl_arch_invalidate_dcache_range((uintptr_t)buffer, size);
+	}
 
-	if (direction & TEGRABL_DMA_TO_DEVICE)
-		tegrabl_arch_clean_invalidate_dcache_range(virt_addr, size);
-	else
-		tegrabl_arch_invalidate_dcache_range(virt_addr, size);
-
-	/* Do Stage-1 EL2 VA-PA address-translations */
-	asm volatile ("at s1e2r, %[va]" : : [va]"r"(virt_addr));
-	asm volatile ("mrs %[par], par_el1" : [par]"=r"(par_el1));
-
-	/* PAR_EL1[0] == 1 means translation was unsuccessful, so return 0
-	 * otherwise PAR_EL1[47:12] holds the PA corresponding to VA[63:12] */
-	retval = (par_el1 & 1LLU) ?
-		0LLU : ((par_el1 & 0xFFFFFFFFF000LLU) | (virt_addr & 0xFFFLLU));
-
-	return retval;
+	return tegrabl_dma_va_to_pa(module, buffer);
 }
 
 void tegrabl_dma_unmap_buffer(tegrabl_module_t module, uint8_t instance,
@@ -60,4 +46,26 @@ void tegrabl_dma_unmap_buffer(tegrabl_module_t module, uint8_t instance,
 
 	if (direction & TEGRABL_DMA_FROM_DEVICE)
 		tegrabl_arch_invalidate_dcache_range((uintptr_t)buffer, size);
+}
+
+dma_addr_t tegrabl_dma_va_to_pa(tegrabl_module_t module, void *va)
+{
+	dma_addr_t retval;
+	uintptr_t virt_addr;
+	uint64_t par_el1;
+
+	TEGRABL_UNUSED(module);
+
+	virt_addr = (uintptr_t)va;
+
+	/* Do Stage-1 EL2 VA-PA address-translations */
+	asm volatile ("at s1e2r, %[va]" : : [va]"r"(virt_addr));
+	asm volatile ("mrs %[par], par_el1" : [par]"=r"(par_el1));
+
+	/* PAR_EL1[0] == 1 means translation was unsuccessful, so return 0
+	 * otherwise PAR_EL1[47:12] holds the PA corresponding to VA[63:12] */
+	retval = (par_el1 & 1LLU) ?
+		0LLU : ((par_el1 & 0xFFFFFFFFF000LLU) | (virt_addr & 0xFFFLLU));
+
+	return retval;
 }

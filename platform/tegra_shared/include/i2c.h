@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -12,17 +12,16 @@
 
 #include <sys/types.h>
 /* i2c instances */
-typedef enum
-{
-    i2c1 = 1,
-    i2c2,
-    i2c3,
-    i2c4,
-    i2c5,
-    i2c6,
+/* macro i2c1 */
+#define i2c1 1
+#define i2c2 2
+#define i2c3 3
+#define i2c4 4
+#define i2c5 5
+#define i2c6 6
     /* Should be last enum. */
-    i2c_instances = i2c6
-}i2c_instance;
+#define i2c_instances i2c6
+typedef uint32_t i2c_instance;
 
 
 /**

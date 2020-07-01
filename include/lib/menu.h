@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, NVIDIA Corporation.  All Rights Reserved.
+ * Copyright (c) 2014-2018, NVIDIA Corporation.  All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -12,16 +12,16 @@
 #define __MENU_H__
 
 #include <sys/types.h>
-#include <tegrabl_display.h>
 #include <tegrabl_debug.h>
 #include <tegrabl_nvblob.h>
+#include <tegrabl_display.h>
 
-enum menu_type {
-	ANDROID_BOOT_MENU,
-	FASTBOOT_MENU,
-	VERIFIED_BOOT_MENU,
-	OTHER_MENU,
-};
+/* macro menu type */
+typedef uint32_t menu_type_t;
+#define ANDROID_BOOT_MENU 0
+#define FASTBOOT_MENU 1
+#define VERIFIED_BOOT_MENU 2
+#define OTHER_MENU 3
 
 /**
  * @brief String object for the console menu
@@ -32,7 +32,7 @@ enum menu_type {
  *				const qualifier
  */
 struct menu_string {
-	enum color color;
+	color_t color;
 	const char *data;
 };
 
@@ -44,7 +44,7 @@ struct menu_string {
  */
 struct menu_backgnd {
 	bool valid;
-	enum tegrabl_image_type img;
+	tegrabl_image_type_t img;
 };
 
 /**
@@ -105,7 +105,7 @@ struct menu_entry {
  * @param current_entry currently pointed to menu entry (state variable)
  */
 struct menu {
-	enum menu_type menu_type;
+	menu_type_t menu_type;
 	const char *name;
 	struct menu_backgnd menu_backgnd;
 	struct menu_header menu_header;

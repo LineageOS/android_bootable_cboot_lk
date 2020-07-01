@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016 - 2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -14,11 +14,10 @@
 #include <platform/timer.h>
 #include <platform/interrupts.h>
 #include <kernel/thread.h>
-#include <platform/irqs.h>
 #include <common.h>
 #include <platform_c.h>
 #include <tegrabl_debug.h>
-#include <address_map_new.h>
+#include <tegrabl_addressmap.h>
 
 #define TEGRA_TIMERUS_BASE		NV_ADDRESS_MAP_TSCUS_BASE
 #define TIMERUS_CNTR_1US		0
@@ -61,7 +60,7 @@ static lk_time_t timer_interval;
 
 static volatile uint32_t ticks;
 
-static enum handler_return timer_irq(void *arg)
+static handler_return_t timer_irq(void *arg)
 {
 	/*  Clears the interrupt */
 	writel((1 << 30), tmrs[0].reg_base + PCR);

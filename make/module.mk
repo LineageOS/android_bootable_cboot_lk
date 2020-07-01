@@ -38,10 +38,13 @@ endif
 MODULE_SRCDIR := $(MODULE)
 MODULE_BUILDDIR := $(call TOBUILDDIR,$(MODULE_SRCDIR))
 
+MODULE_SRCS := $(abspath $(MODULE_SRCS))
+
 # add the listed module deps to the global list
 MODULES += $(MODULE_DEPS)
 
 #$(info module $(MODULE))
+#$(info BUILDDIR $(BUILDDIR))
 #$(info MODULE_SRCDIR $(MODULE_SRCDIR))
 #$(info MODULE_BUILDDIR $(MODULE_BUILDDIR))
 #$(info MODULE_DEPS $(MODULE_DEPS))
@@ -80,7 +83,7 @@ include make/compile.mk
 MODULE_OBJECT := $(call TOBUILDDIR,$(MODULE_SRCDIR).mod.o)
 $(MODULE_OBJECT): $(MODULE_OBJS) $(MODULE_EXTRA_OBJS)
 	@$(MKDIR)
-	@echo linking $@
+	@echo linking $(call LOCALIZE_DIR,$@)
 	$(NOECHO)$(LD) -r $^ -o $@
 
 # track all the objects built

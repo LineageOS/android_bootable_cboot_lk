@@ -470,18 +470,17 @@ static void arm64_init_boot_param(struct tboot_cpubl_params **boot_params)
 	/* Read CPUBL params pointer from SCRATCH_7 register */
 	scratch7 = NV_READ32(NV_ADDRESS_MAP_SCRATCH_BASE + SCRATCH_SCRATCH_7);
 
-	if (scratch7 < NV_ADDRESS_MAP_EMEM_BASE)
-		*boot_params = (struct tboot_cpubl_params *)(uintptr_t)
-				((uint64_t)scratch7 << CONFIG_PAGE_SIZE_LOG2);
-	else
+	if (scratch7 < NV_ADDRESS_MAP_EMEM_BASE) {
+		*boot_params = (struct tboot_cpubl_params *)(uintptr_t)((uint64_t)scratch7 << CONFIG_PAGE_SIZE_LOG2);
+	} else {
 		*boot_params = (struct tboot_cpubl_params *)(uintptr_t)scratch7;
+	}
 }
 
 void arm64_mmu_init(void)
 {
 	uint64_t reg;
 	struct tboot_cpubl_params *boot_params;
-
 
 	/* Initialize SCTLR with sane value */
 	ARM64_WRITE_TARGET_SYSREG(SCTLR_ELx, 0x30D00800);
@@ -518,17 +517,25 @@ void arm64_mmu_init(void)
 	/* set up the translation table base */
 	ARM64_WRITE_TARGET_SYSREG(TTBR0_ELx, (uint64_t)tt_base);
 
-	/* Read boot param pointer from scratch7 register to get global data shared
-	 * from previous boot stage */
+	/* Read boot param pointer from scratch7 register to get carveout info shared from previous boot stage */
 	arm64_init_boot_param(&boot_params);
-	/* Map only cboot */
+
+#if defined(IS_T186)
+	/* Map cboot region */
 	arm64_mmu_map(boot_params->global_data.carveout[CARVEOUT_CPUBL].base,
-		      boot_params->global_data.carveout[CARVEOUT_CPUBL].base,
-		      (addr_t)boot_params->global_data.carveout[CARVEOUT_CPUBL].size,
-		      MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+				  boot_params->global_data.carveout[CARVEOUT_CPUBL].base,
+				  (addr_t)boot_params->global_data.carveout[CARVEOUT_CPUBL].size,
+				  MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+#else
+	/* Map cboot region */
+	arm64_mmu_map(boot_params->carveout_info[CARVEOUT_CPUBL].base,
+				  boot_params->carveout_info[CARVEOUT_CPUBL].base,
+				  (addr_t)boot_params->carveout_info[CARVEOUT_CPUBL].size,
+				  MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+#endif
+
 	/* turn on the mmu */
-	ARM64_WRITE_TARGET_SYSREG(SCTLR_ELx, ARM64_READ_TARGET_SYSREG(SCTLR_ELx) |
-			SCTLR_M  | SCTLR_I | SCTLR_C);
+	ARM64_WRITE_TARGET_SYSREG(SCTLR_ELx, ARM64_READ_TARGET_SYSREG(SCTLR_ELx) | SCTLR_M  | SCTLR_I | SCTLR_C);
 	ISB;
 }
 

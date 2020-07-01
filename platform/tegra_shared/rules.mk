@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2016, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2014-2017, NVIDIA CORPORATION. All rights reserved.
 #
 # NVIDIA Corporation and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -20,7 +20,6 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/cpu_early_init.c \
 	$(LOCAL_DIR)/interrupts.c \
 	$(LOCAL_DIR)/timer.c \
-	$(LOCAL_DIR)/debug.c \
-	$(LOCAL_DIR)/utils.c
+	$(LOCAL_DIR)/debug.c
 
 include make/module.mk

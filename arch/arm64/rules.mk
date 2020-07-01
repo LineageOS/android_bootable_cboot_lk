@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -15,9 +15,9 @@ MODULE := $(LOCAL_DIR)
 GLOBAL_DEFINES += \
 	ARM64_CPU_$(ARM_CPU)=1 \
 	ARM_ISA_ARMV8=1 \
-	WITH_MMU=1 \
 	ARM64_WITH_EL2=1 \
-	ARM_WITH_CACHE=1
+	ARM_WITH_CACHE=1 \
+	WITH_MMU=1
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR)/include
@@ -35,7 +35,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/stacktrace.c \
 	$(LOCAL_DIR)/cache-ops.S \
 	$(LOCAL_DIR)/dmamap.c \
-	$(LOCAL_DIR)/../../../nvtboot/cpu/soc/t186/tz_init.c
+	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/nvtboot/cpu/soc/$(TARGET)/tz_init.c
 
 GLOBAL_DEFINES += \
 	ARCH_DEFAULT_STACK_SIZE=8192

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION. All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -16,26 +16,26 @@
 #include <list.h>
 #include <stdlib.h>
 
-enum gpio_pin_state {
-	GPIO_PIN_STATE_LOW, /* GPIO pin in LOW state. */
-	GPIO_PIN_STATE_HIGH, /* GPIO pin in HIGH state. */
-};
+/* macro gpio pin state */
+typedef uint32_t gpio_pin_state_t;
+#define GPIO_PIN_STATE_LOW 0 /* GPIO pin in LOW state. */
+#define GPIO_PIN_STATE_HIGH 1 /* GPIO pin in HIGH state. */
 
-enum gpio_pin_mode {
-	GPIO_PINMODE_INPUT, /* GPIO pin in INPUT mode */
-	GPIO_PINMODE_OUTPUT, /* GPIO pin in OUTPUT mode */
-	GPIO_PINMODE_SPIO  /* Configure pin to SPIO mode */
-};
+/* macro gpio pin mode */
+typedef uint32_t gpio_pin_mode_t;
+#define GPIO_PINMODE_INPUT 0 /* GPIO pin in INPUT mode */
+#define GPIO_PINMODE_OUTPUT 1 /* GPIO pin in OUTPUT mode */
+#define GPIO_PINMODE_SPIO 2 /* Configure pin to SPIO mode */
 
 /* It is mandatory for any GPIO driver to register these APIs.
  * Else the driver will not be registered to the GPIO core
  */
 struct gpio_driver_ops {
-	status_t (*read)(uint32_t gpio_num, enum gpio_pin_state *state,
+	status_t (*read)(uint32_t gpio_num, gpio_pin_state_t *state,
 					void *drv_data);
-	status_t (*write)(uint32_t gpio_num, enum gpio_pin_state state,
+	status_t (*write)(uint32_t gpio_num, gpio_pin_state_t state,
 					void *drv_data);
-	status_t (*config)(uint32_t gpio_num, enum gpio_pin_mode mode,
+	status_t (*config)(uint32_t gpio_num, gpio_pin_mode_t mode,
 					void *drv_data);
 };
 
@@ -82,7 +82,7 @@ status_t gpio_driver_get(uint32_t phandle, struct gpio_driver **out);
  *		   otherwise error
  */
 static inline status_t gpio_read(struct gpio_driver *drv,
-				uint32_t gpio_num, enum gpio_pin_state *state)
+				uint32_t gpio_num, gpio_pin_state_t *state)
 {
 	return drv->ops->read(gpio_num, state, drv->driver_data);
 }
@@ -97,7 +97,7 @@ static inline status_t gpio_read(struct gpio_driver *drv,
  * @return NO_ERROR on succes otherwise error
  */
 static inline status_t gpio_write(struct gpio_driver *drv,
-				uint32_t gpio_num, enum gpio_pin_state state)
+				uint32_t gpio_num, gpio_pin_state_t state)
 {
 	return drv->ops->write(gpio_num, state, drv->driver_data);
 }
@@ -112,7 +112,7 @@ static inline status_t gpio_write(struct gpio_driver *drv,
  * @return NO_ERROR on success otherwise error
  */
 static inline status_t gpio_config(struct gpio_driver *drv,
-				uint32_t gpio_num, enum gpio_pin_mode mode)
+				uint32_t gpio_num, gpio_pin_mode_t mode)
 {
 	return drv->ops->config(gpio_num, mode, drv->driver_data);
 }

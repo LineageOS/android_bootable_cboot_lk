@@ -11,9 +11,8 @@
 #include <asm.h>
 #include <tegrabl_addressmap.h>
 #include <arscratch.h>
+#include <platform/iomap.h>
 
-#define CPUPARAMS_TOS_PARAMS_OFFSET	0x2448
-#define CPUPARAMS_TOS_START_OFFSET	0x2468
 #define RELOC_R_AARCH64_RELATIVE_TYPE	1027
 
 .section .text.boot

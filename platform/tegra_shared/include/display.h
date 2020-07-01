@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -17,34 +17,36 @@
 #include <common.h>
 #include <errno.h>
 
-enum color {
-	RED,
-	WHITE,
-	GREEN,
-	BLUE,
-	YELLOW,
-	ORANGE,
-} color; /* TODO: Not sure what defining an enum variable gets us */
+/* macro color_t*/
+typedef uint32_t color_t;
+#define RED 0
+#define WHITE 1
+#define GREEN 2
+#define BLUE 3
+#define YELLOW 4
+#define ORANGE 5
 
-enum cursor_position {
-	CURSOR_START,
-	CURSOR_CENTRE,
-	CURSOR_END,
-} cursor_position;
+color_t color;
 
-enum {
-	TEXT_ROTATION,
-	IMAGE_ROTATION,
-	TEXT_IMAGE_ROTATION,
-} rotation_type;
+/* macro cursor position */
+typedef uint32_t cursor_position_t;
+#define CURSOR_START 0
+#define CURSOR_CENTRE 1
+#define CURSOR_END 2
 
-enum {
-	DISPLAY_IOCTL_SET_SW_ROTATION,
-	DISPLAY_IOCTL_SET_HW_ROTATION,
-	DISPLAY_IOCTL_SET_FONT,
-	DISPLAY_IOCTL_CONTROL_BACKLIGHT,
-	DISPLAY_IOCTL_GET_DISPLAY_PARAMS,
-};
+cursor_position_t cursor_position;
+
+/* macro rotation type */
+#define TEXT_ROTATION 0
+#define IMAGE_ROTATION 1
+#define TEXT_IMAGE_ROTATION 2
+typedef uint32_t rotation_type;
+
+#define DISPLAY_IOCTL_SET_SW_ROTATION 0
+#define DISPLAY_IOCTL_SET_HW_ROTATION 1
+#define DISPLAY_IOCTL_SET_FONT 2
+#define DISPLAY_IOCTL_CONTROL_BACKLIGHT 3
+#define DISPLAY_IOCTL_GET_DISPLAY_PARAMS 4
 
 struct backlight_pwm {
 	uint32_t handle;

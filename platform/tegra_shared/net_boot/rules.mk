@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014, NVIDIA Corporation.  All Rights Reserved.
+# Copyright (c) 2018, NVIDIA Corporation.  All Rights Reserved.
 #
 # NVIDIA Corporation and its licensors retain all intellectual property and
 # proprietary rights in and to this software and related documentation.  Any
@@ -12,9 +12,9 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 GLOBAL_INCLUDES += \
-	$(LOCAL_DIR)/include
+	$(LOCAL_DIR)/
 
-MODULE_SRCS += \
-	$(LOCAL_DIR)/leds_pwm.c
+MODULE_SRCS := \
+	$(LOCAL_DIR)/net_boot.c
 
 include make/module.mk

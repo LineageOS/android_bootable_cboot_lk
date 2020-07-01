@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2016-2017, NVIDIA CORPORATION. All rights reserved.
  * Copyright (c) 2012 Travis Geiselbrecht
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -106,11 +106,13 @@ void lk_main(void)
 	lk_init_level(LK_INIT_LEVEL_THREADING - 1);
 	// create a thread to complete system initialization
 	dprintf(SPEW, "creating bootstrap completion thread\n");
+
 	thread_t *t = thread_create("bootstrap2", &bootstrap2, NULL,
 				    DEFAULT_PRIORITY, DEFAULT_STACK_SIZE);
 
 	thread_detach(t);
 	thread_resume(t);
+
 
 	// become the idle thread and enable interrupts to start the scheduler
 	thread_become_idle();
