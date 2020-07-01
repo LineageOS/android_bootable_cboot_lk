@@ -506,14 +506,10 @@ static int tokenize_command(const char *inbuffer, const char **continuebuffer, c
 					varname[varnamepos] = 0;
 
 					(void)varname[0]; // nuke a warning
-					int rc = -1;
 
-					if (rc < 0) {
-						buffer[outpos++] = '0';
-						buffer[outpos++] = 0;
-					} else {
-						outpos += strlen(&buffer[outpos]) + 1;
-					}
+					buffer[outpos++] = '0';
+					buffer[outpos++] = 0;
+
 					arg++;
 					/* are we out of tokens? */
 					if (arg == arg_count)
@@ -567,13 +563,13 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 	const char *buffer;
 	const char *continuebuffer;
 	char *outbuf = NULL;
+	const size_t outbuflen = 1024;
 
 	args = (cmd_args *) malloc (MAX_NUM_ARGS * sizeof(cmd_args));
 	if (unlikely(args == NULL)) {
 		goto no_mem_error;
 	}
 
-	const size_t outbuflen = 1024;
 	outbuf = malloc(outbuflen);
 	if (unlikely(outbuf == NULL)) {
 		goto no_mem_error;
@@ -644,9 +640,6 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 	return NO_ERROR;
 
 no_mem_error:
-	if (outbuf)
-		free(outbuf);
-
 	if (args)
 		free(args);
 

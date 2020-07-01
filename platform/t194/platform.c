@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -162,6 +162,7 @@ struct mmio_mapping_info mmio_mappings[] = {
 	{ NV_ADDRESS_MAP_DPAUX3_BASE, NV_ADDRESS_MAP_DPAUX3_SIZE },
 	{ NV_ADDRESS_MAP_AON_GPIO_0_BASE, NV_ADDRESS_MAP_AON_GPIO_0_SIZE },
 	{ NV_ADDRESS_MAP_GPIO_CTL_BASE, NV_ADDRESS_MAP_GPIO_CTL_SIZE },
+	{ NV_ADDRESS_MAP_PADCTL_A13_BASE, NV_ADDRESS_MAP_PADCTL_A13_SIZE},
 	{ NV_ADDRESS_MAP_PADCTL_A16_BASE, NV_ADDRESS_MAP_PADCTL_A16_SIZE },
 	{ NV_ADDRESS_MAP_SE0_BASE, NV_ADDRESS_MAP_SE0_SIZE },
 	{ NV_ADDRESS_MAP_SE1_BASE, NV_ADDRESS_MAP_SE1_SIZE },
@@ -276,6 +277,9 @@ status_t platform_early_init(void)
 {
 	status_t error = TEGRABL_NO_ERROR;
 	carve_out_type_t carveout;
+#if defined(CONFIG_ENABLE_COMB_UART)
+	uint32_t mailbox;
+#endif
 
 	platform_init_boot_param();
 	if (boot_params == NULL) {
@@ -314,7 +318,7 @@ status_t platform_early_init(void)
 #endif
 
 #if defined(CONFIG_ENABLE_COMB_UART)
-	uint32_t mailbox = COMB_UART_CPU_MAILBOX;
+	mailbox = COMB_UART_CPU_MAILBOX;
 
 	if (boot_params->enable_combined_uart == 1U) {
 		error = tegrabl_console_register(TEGRABL_CONSOLE_COMB_UART, 0, &mailbox);
@@ -583,6 +587,11 @@ void platform_init(void)
 	}
 	pr_info("Bl_dtb @%p\n", bl_dtb);
 
+	err = platform_init_bldtb_override(bl_dtb);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_warn("Failed to override BL-DTB\n");
+	}
+
 #if defined(CONFIG_ENABLE_GPIO)
 	gpio_framework_init();
 	err = tegrabl_gpio_driver_init();
@@ -627,11 +636,6 @@ void platform_init(void)
 		pr_warn("tegra_nct_init failed with ret:%d\n", err);
 	}
 #endif
-
-	err = platform_init_bldtb_override(bl_dtb);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_warn("Failed to override BL-DTB\n");
-	}
 
 	err = platform_disable_global_wdt(false);
 	if (err != TEGRABL_NO_ERROR) {
