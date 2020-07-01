@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2013 Travis Geiselbrecht
+ * Copyright (c) 2016, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012 Travis Geiselbrecht
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files
@@ -35,10 +36,13 @@
 #include <lib/heap.h>
 #include <kernel/thread.h>
 #include <lk/init.h>
+#include <tegrabl_debug.h>
+#include <tegrabl_malloc.h>
 
 extern void *__ctor_list;
 extern void *__ctor_end;
 extern int __bss_start;
+extern int __version_start;
 extern int _end;
 
 static int bootstrap2(void *arg);
@@ -64,6 +68,7 @@ static void call_constructors(void)
 void lk_main(void) __NO_RETURN __EXTERNALLY_VISIBLE;
 void lk_main(void)
 {
+	/*char *version_string = (char *)&__version_start;*/
 	inc_critical_section();
 
 	// get us into some sort of thread context
@@ -81,26 +86,29 @@ void lk_main(void)
 	lk_init_level(LK_INIT_LEVEL_TARGET_EARLY - 1);
 	target_early_init();
 
-	dprintf(INFO, "welcome to lk\n\n");
+	/* dprintf(INFO, "Cboot Version: %s\n", version_string); */
 
 	// deal with any static constructors
 	dprintf(SPEW, "calling constructors\n");
 	call_constructors();
 
 	// bring up the kernel heap
-	dprintf(SPEW, "initializing heap\n");
+	tegrabl_printf("initializing heap\n");
 	lk_init_level(LK_INIT_LEVEL_HEAP - 1);
-	heap_init();
+
+	if (platform_init_heap() != TEGRABL_NO_ERROR)
+		panic("Heap Init Failed\n");
 
 	// initialize the kernel
 	lk_init_level(LK_INIT_LEVEL_KERNEL - 1);
 	kernel_init();
 
 	lk_init_level(LK_INIT_LEVEL_THREADING - 1);
-
 	// create a thread to complete system initialization
 	dprintf(SPEW, "creating bootstrap completion thread\n");
-	thread_t *t = thread_create("bootstrap2", &bootstrap2, NULL, DEFAULT_PRIORITY, DEFAULT_STACK_SIZE);
+	thread_t *t = thread_create("bootstrap2", &bootstrap2, NULL,
+				    DEFAULT_PRIORITY, DEFAULT_STACK_SIZE);
+
 	thread_detach(t);
 	thread_resume(t);
 
@@ -115,22 +123,34 @@ static int bootstrap2(void *arg)
 	lk_init_level(LK_INIT_LEVEL_ARCH - 1);
 	arch_init();
 
+	// Call all functions at LEVEL_ARCH
+	lk_init_level(LK_INIT_LEVEL_PLATFORM - 1);
+
 	// initialize the rest of the platform
 	dprintf(SPEW, "initializing platform\n");
-	lk_init_level(LK_INIT_LEVEL_PLATFORM - 1);
 	platform_init();
+
+	// Call all functions at LEVEL_PLATFORM
+	lk_init_level(LK_INIT_LEVEL_TARGET - 1);
 
 	// initialize the target
 	dprintf(SPEW, "initializing target\n");
-	lk_init_level(LK_INIT_LEVEL_TARGET - 1);
 	target_init();
 
-	dprintf(SPEW, "calling apps_init()\n");
+	// Call all functions at LEVEL_TARGET
 	lk_init_level(LK_INIT_LEVEL_APPS - 1);
+
+#if 0
+	// Initialize OF layer
+	dprintf(SPEW, "initializing OF layer\n");
+	of_init_all_drivers();
+#endif
+
+	dprintf(SPEW, "calling apps_init()\n");
 	apps_init();
 
+	// Call all the rest
 	lk_init_level(LK_INIT_LEVEL_LAST);
-
 	return 0;
 }
 

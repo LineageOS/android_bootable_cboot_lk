@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008-2009 Travis Geiselbrecht
+ * Copyright (c) 2016, NVIDIA Corporation. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files
@@ -74,8 +75,9 @@ static int cmd_threads(int argc, const cmd_args *argv)
 static int cmd_threadstats(int argc, const cmd_args *argv)
 {
 	printf("thread stats:\n");
-	printf("\ttotal idle time: %lld\n", thread_stats.idle_time);
-	printf("\ttotal busy time: %lld\n", current_time_hires() - thread_stats.idle_time);
+	printf("\ttotal idle time: %" PRIu64"\n", (uint64_t)thread_stats.idle_time);
+	printf("\ttotal busy time: %" PRIu64"\n",
+	       (uint64_t)(current_time_hires() - thread_stats.idle_time));
 	printf("\treschedules: %d\n", thread_stats.reschedules);
 	printf("\tcontext_switches: %d\n", thread_stats.context_switches);
 	printf("\tpreempts: %d\n", thread_stats.preempts);
@@ -101,7 +103,7 @@ static enum handler_return threadload(struct timer *t, lk_time_t now, void *arg)
 
 	uint busypercent = (busy_time * 10000) / (1000000);
 
-//	printf("idle_time %lld, busytime %lld\n", idle_time - last_idle_time, busy_time);
+//	printf("idle_time %" PRIu64", busytime %" PRIu64"\n", idle_time - last_idle_time, busy_time);
 	printf("LOAD: %d.%02d%%, cs %d, ints %d, timer ints %d, timers %d\n", busypercent / 100, busypercent % 100,
 	       thread_stats.context_switches - old_stats.context_switches,
 	       thread_stats.interrupts - old_stats.interrupts,

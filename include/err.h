@@ -20,6 +20,17 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * Copyright (c) 2014, NVIDIA Corporation.  All Rights Reserved.
+ *
+ * NVIDIA Corporation and its licensors retain all intellectual property and
+ * proprietary rights in and to this software and related documentation.  Any
+ * use, reproduction, disclosure or distribution of this software and related
+ * documentation without an express license agreement from NVIDIA Corporation
+ * is strictly prohibited.
+ */
+
+
 #ifndef __ERR_H
 #define __ERR_H
 
@@ -53,5 +64,30 @@
 #define ERR_TOO_BIG -25
 #define ERR_THREAD_DETACHED -26
 #define ERR_NOT_CONFIGURED -27
+#define ERR_DEPENDENCY_FAIL -28
+
+#define GOTO_FAIL_ERROR(expr)										\
+	do {																\
+		err = (expr);													\
+		if (err != NO_ERROR)											\
+			goto fail;													\
+	} while (0)
+
+#define RETURN_ERROR(expr)											\
+	do {																	\
+		err = (expr);														\
+		if (err != NO_ERROR)												\
+			return err;														\
+	} while (0)
+
+#define PRINT_ERROR(expr, err_msg)									\
+	do {																	\
+		err = (expr);														\
+		if (err != NO_ERROR) { 												\
+			dprintf(CRITICAL, "%s with error %d in %s func at %d line\n",	\
+					err_msg, err, __func__, __LINE__);						\
+			goto fail;														\
+		}																	\
+	} while (0)
 
 #endif

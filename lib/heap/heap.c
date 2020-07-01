@@ -21,6 +21,16 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * NVIDIA CORPORATION and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA CORPORATION is strictly prohibited
+ */
+
 #include <debug.h>
 #include <trace.h>
 #include <assert.h>
@@ -32,6 +42,7 @@
 #include <kernel/thread.h>
 #include <kernel/mutex.h>
 #include <lib/heap.h>
+#include <malloc.h>
 
 #define LOCAL_TRACE 0
 
@@ -58,6 +69,8 @@ extern int _end;
 // end of memory
 extern void *_heap_end;
 
+#undef HEAP_START
+#undef HEAP_LEN
 #define HEAP_START ((uintptr_t)&_end)
 #define HEAP_LEN ((uintptr_t)_heap_end - (uintptr_t)&_end)
 #endif
@@ -507,9 +520,6 @@ void heap_add_block(void *ptr, size_t len)
 	heap_insert_free_chunk(heap_create_free_chunk(ptr, len, false));
 }
 
-#if LK_DEBUGLEVEL > 1
-#if WITH_LIB_CONSOLE
-
 #include <lib/console.h>
 
 static int cmd_heap(int argc, const cmd_args *argv);
@@ -520,23 +530,110 @@ STATIC_COMMAND_END(heap);
 
 static int cmd_heap(int argc, const cmd_args *argv)
 {
-	if (argc < 2) {
+	if (argc < 2)
+	{
 		printf("not enough arguments\n");
+usage:
+		printf("%s info\n", argv[0].str);
+		printf("%s alloc <count_bytes> <alignment>\n", argv[0].str);
+		printf("%s free <address>\n", argv[0].str);
+		printf("%s alloc_uncached <count_bytes> <alignment>\n", argv[0].str);
+		printf("%s free_uncached <address> <asize>\n", argv[0].str);
+		printf("         (asize should be same as alloc_uncached)\n");
 		return -1;
 	}
 
-	if (strcmp(argv[1].str, "info") == 0) {
+	if (strcmp(argv[1].str, "info") == 0)
+	{
 		heap_dump();
-	} else {
+	}
+	else if (strcmp(argv[1].str, "alloc") == 0)
+	{
+		if (argc < 3)
+		{
+			printf("not enough arguments:\n");
+			goto usage;
+		}
+		uint8_t *memory = NULL;
+		uint32_t len = argv[2].u;
+		uint32_t boundary = 0;
+
+		if (argc == 4)
+			boundary = argv[3].u;
+
+		memory = memalign(boundary, len);
+
+		if (!memory)
+			printf("unable to allocate memory \n");
+		else
+			printf("pointer to %u bytes is %p \n", len, memory);
+	}
+	else if (strcmp(argv[1].str, "free") == 0)
+	{
+		if (argc < 3)
+		{
+			printf("not enough arguments:\n");
+			goto usage;
+		}
+		addr_t memory = argv[2].u;
+
+		if (memory)
+		{
+			free((void *)memory);
+			printf("memory is deallocated \n");
+		}
+		else
+			printf("memory is NULL \n");
+	}
+	else if (strcmp(argv[1].str, "alloc_uncached") == 0)
+	{
+		if (argc < 3)
+		{
+			printf("not enough arguments:\n");
+			goto usage;
+		}
+		uint8_t *memory = NULL;
+		uint32_t len = argv[2].u;
+		uint32_t boundary = 0;
+		size_t asize;
+
+		if (argc == 4)
+			boundary = argv[3].u;
+
+		memory = memalign_uncached(boundary, len, &asize);
+
+		if (!memory)
+			printf("unable to allocate memory \n");
+		else
+			printf("pointer to %u bytes is %p (asize: %zu)\n",
+				   len, memory, asize);
+	}
+	else if (strcmp(argv[1].str, "free_uncached") == 0)
+	{
+		if (argc < 4)
+		{
+			printf("not enough arguments:\n");
+			goto usage;
+		}
+		addr_t memory = argv[2].u;
+		size_t asize = argv[3].u;
+
+		if (memory)
+		{
+			free_uncached((void *)memory, asize);
+			printf("memory is deallocated \n");
+		}
+		else
+			printf("memory is NULL \n");
+	}
+	else
+	{
 		printf("unrecognized command\n");
-		return -1;
+		goto usage;
 	}
 
 	return 0;
 }
-
-#endif
-#endif
 
 /* vim: set ts=4 sw=4 noexpandtab: */
 

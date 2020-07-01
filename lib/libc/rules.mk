@@ -2,6 +2,9 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MODULE_DEPS += \
+	../../common/lib/clib
+
 MODULE_SRCS += \
 	$(LOCAL_DIR)/atoi.c \
 	$(LOCAL_DIR)/ctype.c \
@@ -11,8 +14,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/stdio.c \
 	$(LOCAL_DIR)/eabi.c
 
-
-include $(LOCAL_DIR)/string/rules.mk
+#include $(LOCAL_DIR)/string/rules.mk
 
 ifeq ($(WITH_CPP_SUPPORT),true)
 MODULE_SRCS += \

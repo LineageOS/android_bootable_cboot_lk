@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
  * Copyright (c) 2008 Travis Geiselbrecht
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -34,7 +35,18 @@ void platform_early_init(void);
 /* later init, after the kernel has come up */
 void platform_init(void);
 
+/* uninit platform, before the kernel entry */
+void platform_uninit(void);
+
 /* called by the arch init code to get the platform to set up any mmu mappings it may need */
 void platform_init_mmu_mappings(void);
+
+/**
+* @brief Init the heap.
+*
+* @return status of CDF's heap init request.
+*/
+status_t platform_init_heap(void);
+
 
 #endif
