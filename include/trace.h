@@ -20,10 +20,15 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 #ifndef __TRACE_H
 #define __TRACE_H
 
 #include <stdio.h>
+#include <tegrabl_debug.h>
+
+#undef printf
+#define printf pr_info
 
 /* trace routines */
 #define TRACE_ENTRY printf("%s: entry\n", __PRETTY_FUNCTION__)

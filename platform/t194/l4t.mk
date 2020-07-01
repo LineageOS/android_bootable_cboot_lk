@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -17,7 +17,7 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_USB_MS=1 \
 	CONFIG_ENABLE_SECURE_BOOT=1 \
 	CONFIG_ENABLE_DISPLAY=1 \
-	CONFIG_ENABLE_CBO=1
+	CONFIG_ENABLE_SHELL=1
 
 MODULE_DEPS +=	\
 	lib/lwip \
@@ -26,5 +26,4 @@ MODULE_DEPS +=	\
 MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../../common/drivers/eqos \
 	$(LOCAL_DIR)/../../../../common/drivers/phy \
-	$(LOCAL_DIR)/../tegra_shared/net_boot \
-	$(LOCAL_DIR)/../../../../common/lib/cbo
+	$(LOCAL_DIR)/../tegra_shared/net_boot

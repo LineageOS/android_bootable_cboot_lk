@@ -32,9 +32,9 @@
 #include <tegrabl_fuse.h>
 #include <libfdt.h>
 #include <nvboot_crypto_param.h>
+#include <verified_boot_ui.h>
 
 #if defined(IS_T186)
-#include <verified_boot_ui.h>
 #include <tegrabl_se.h>
 #else
 #include <tegrabl_crypto_se.h>
@@ -420,7 +420,6 @@ status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
 	}
 }
 
-#if defined(IS_T186)
 status_t verified_boot_ui(boot_state_t bs,
 						  struct rsa_public_key *boot_pub_key,
 						  struct rsa_public_key *dtb_pub_key)
@@ -436,7 +435,6 @@ status_t verified_boot_ui(boot_state_t bs,
 		return ERR_INVALID_ARGS;
 	}
 }
-#endif
 
 tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 							void *kernel_dtb, void *kernel_dtbo)
@@ -476,10 +474,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		   sizeof(r_o_t_params.boot_pub_key));
 	memcpy(r_o_t_params.dtb_pub_key, vb_pub_key_dtb->n,
 		   sizeof(r_o_t_params.dtb_pub_key));
-	if (bs == VERIFIED_BOOT_ORANGE_STATE)
-		r_o_t_params.is_unlocked = 1;
-	else
-		r_o_t_params.is_unlocked = 0;
+	r_o_t_params.verified_boot_state = bs;
 
 	/* Flush these bytes so that the monitor can access them */
 	tegrabl_arch_clean_dcache_range((addr_t)&r_o_t_params,
@@ -510,10 +505,8 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 			bs == VERIFIED_BOOT_GREEN_STATE ? "Green" :
 			bs == VERIFIED_BOOT_ORANGE_STATE ? "Orange" : "Unknown");
 
-#if defined(IS_T186)
 	if (bs != VERIFIED_BOOT_GREEN_STATE)
 		verified_boot_ui(bs, vb_pub_key_boot, vb_pub_key_dtb);
-#endif
 
 exit:
 	if (vb_pub_key_dtb)

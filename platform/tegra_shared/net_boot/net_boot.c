@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -99,7 +99,7 @@ err_t process_ethernet_frame(void)
 	struct pbuf *p = NULL;
 	size_t len;
 	struct netif *netif = saved_netif;
-	uint8_t payload[1500];
+	uint8_t payload[1536];
 	err_t err = ERR_OK;
 
 	if (saved_netif == NULL) {
@@ -109,9 +109,21 @@ err_t process_ethernet_frame(void)
 	}
 
 	tegrabl_eqos_receive(&payload, &len);
+	/* cboot only supports TFTP. Packages with size larger
+	 * than standard TFTP package (with 512 bytes TFTP
+	 * data for each package) will be dropped.
+	 * Ping (ICMP) with size less than 512 is also supported.
+	 */
+	if (len > 562) {
+		LINK_STATS_INC(link.memerr);
+		LINK_STATS_INC(link.drop);
+		MIB2_STATS_NETIF_INC(netif, ifindiscards);
+		err = ERR_MEM;
+		goto fail;
+	}
 	p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
 	if (p != NULL) {
-		memcpy(p->payload, payload, p->len);
+		pbuf_copy_from_userbuffer(p, payload, len);
 		MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
 		if (((u8_t *)p->payload)[0] & 1) {
 			/* broadcast or multicast packet*/
@@ -314,15 +326,6 @@ static tegrabl_error_t download_kernel_from_tftp(uint8_t *tftp_server_ip,
 		goto fail;
 	}
 
-#if defined(CONFIG_ENABLE_SECURE_BOOT)
-	pr_info("Authenticate tftp downloaded %s, size 0x%x\n", KERNEL_DTB, (uint32_t)DTB_MAX_SIZE);
-	err = tegrabl_auth_payload(TEGRABL_BINARY_KERNEL_DTB, KERNEL_DTB, dtb_load_addr, DTB_MAX_SIZE);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Kernel DTB failed to authenticate!\n");
-		goto fail;
-	}
-#endif
-
 	retry = 0;
 	while (retry++ < TFTP_MAX_RRQ_RETRIES) {
 		ret = tftp_client_recv(KERNEL_IMAGE, "octet", boot_img_load_addr, BOOT_IMAGE_MAX_SIZE);
@@ -342,15 +345,6 @@ static tegrabl_error_t download_kernel_from_tftp(uint8_t *tftp_server_ip,
 		err = TEGRABL_ERROR(TEGRABL_ERR_TIMEOUT, AUX_INFO_BOOT_IMAGE_RD_REQ_TIMEOUT);
 		goto fail;
 	}
-
-#if defined(CONFIG_ENABLE_SECURE_BOOT)
-	pr_info("Authenticate tftp downloaded %s, size 0x%x\n", KERNEL_IMAGE, (uint32_t)BOOT_IMAGE_MAX_SIZE);
-	err = tegrabl_auth_payload(TEGRABL_BINARY_KERNEL, KERNEL_IMAGE, boot_img_load_addr, BOOT_IMAGE_MAX_SIZE);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Kernel image failed to authenticate!\n");
-		goto fail;
-	}
-#endif
 
 fail:
 	tegrabl_eqos_deinit();
