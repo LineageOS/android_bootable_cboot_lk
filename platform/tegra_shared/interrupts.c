@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -17,10 +17,11 @@
 #include <sys/types.h>
 #include <platform.h>
 #include <platform/interrupts.h>
+#include <platform/iomap.h>
 #include <kernel/thread.h>
 #include <kernel/debug.h>
 #include <common.h>
-#include <address_map_new.h>
+#include <tegrabl_addressmap.h>
 
 #define COMPATIBLE_VGIC2 "arm,cortex-a15-gic"
 
@@ -51,7 +52,6 @@
 
 #define TEGRA_MAX_INT	256
 
-#define T186_GICD_BASE	(NV_ADDRESS_MAP_ARM_ICTLR_BASE)
 #define T186_GICC_BASE	((T186_GICD_BASE) + 0x1000)
 
 static uintptr_t gicd_base;
@@ -64,9 +64,9 @@ struct ihandler {
 
 static struct ihandler handler[TEGRA_MAX_INT];
 
-enum handler_return platform_irq(struct arm64_iframe_short *frame)
+handler_return_t platform_irq(struct arm64_iframe_short *frame)
 {
-    enum handler_return ret = INT_NO_RESCHEDULE;
+    handler_return_t ret = INT_NO_RESCHEDULE;
     uint32_t iar;
     uint32_t irq_num;
     iar = GICC_READ(GICC_IAR);

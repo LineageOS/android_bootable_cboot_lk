@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -14,12 +14,17 @@
 #include <tegrabl_exit.h>
 #include <tegrabl_soc_misc.h>
 #include <tegrabl_psci.h>
+
+#if defined(CONFIG_ENABLE_DISPLAY)
 #include <tegrabl_display.h>
+#endif
 
 static tegrabl_error_t power_off(void *param)
 {
 	TEGRABL_UNUSED(param);
+#if defined(CONFIG_ENABLE_DISPLAY)
 	tegrabl_display_shutdown();
+#endif
 	tegrabl_psci_sys_off();
 	/* Should not arrive here */
 	return TEGRABL_ERROR(TEGRABL_ERR_COMMAND_FAILED, 0);
@@ -28,7 +33,9 @@ static tegrabl_error_t power_off(void *param)
 static tegrabl_error_t reset(void *param)
 {
 	TEGRABL_UNUSED(param);
+#if defined(CONFIG_ENABLE_DISPLAY)
 	tegrabl_display_shutdown();
+#endif
 	tegrabl_psci_sys_reset();
 	/* Should not arrive here */
 	return TEGRABL_ERROR(TEGRABL_ERR_COMMAND_FAILED, 0);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 - 2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014 - 2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -35,76 +35,76 @@
  /**
   * Defines the memory layout type to be queried for its base/size
   */
-typedef enum {
+/* macro mem layout */
 	/* Invalid entry */
-	MEM_LAYOUT_NONE = 0x0,
+#define MEM_LAYOUT_NONE 0x0
 
 	/* Primary memory layout */
-	MEM_LAYOUT_PRIMARY,
+#define MEM_LAYOUT_PRIMARY 0x1
 
 	/* Extended memory layout */
-	MEM_LAYOUT_EXTENDED,
+#define MEM_LAYOUT_EXTENDED 0x2
 
 	/* VPR carveout information */
-	MEM_LAYOUT_VPR,
+#define MEM_LAYOUT_VPR 0x3
 
 	/* TSEC carveout information */
-	MEM_LAYOUT_TSEC,
+#define MEM_LAYOUT_TSEC 0x4
 
 	/* SECUREOS carveout information */
-	MEM_LAYOUT_SECUREOS,
+#define MEM_LAYOUT_SECUREOS 0x5
 
 	/* LP0 carveout information */
-	MEM_LAYOUT_LP0,
+#define MEM_LAYOUT_LP0 0x6
 
 	/* NCK carveout information */
-	MEM_LAYOUT_NCK,
+#define MEM_LAYOUT_NCK 0x7
 
 	/* DEBUG carveout information */
-	MEM_LAYOUT_DEBUG,
+#define MEM_LAYOUT_DEBUG 0x8
 
 	/* BPMP FW carveout information */
-	MEM_LAYOUT_BPMPFW,
+#define MEM_LAYOUT_BPMPFW 0x9
 
 	/* RAMDump carveout information */
-	MEM_LAYOUT_NVDUMPER,
+#define MEM_LAYOUT_NVDUMPER 0xA
 
 	/* carveout for GSC1 */
-	MEM_LAYOUT_GSC1,
+#define MEM_LAYOUT_GSC1 0xB
 
 	/* carveout for GSC2 */
-	MEM_LAYOUT_GSC2,
+#define MEM_LAYOUT_GSC2 0xC
 
 	/* carveout for GSC3 */
-	MEM_LAYOUT_GSC3,
+#define MEM_LAYOUT_GSC3 0xD
 
 	/* carveout for GSC4 */
-	MEM_LAYOUT_GSC4,
+#define MEM_LAYOUT_GSC4 0xE
 
 	/* carveout for GSC5 */
-	MEM_LAYOUT_GSC5,
+#define MEM_LAYOUT_GSC5 0xF
 
 	/* Total types of memory layout */
-	MEM_LAYOUT_NUM,
-} mem_layout;
+#define MEM_LAYOUT_NUM 0x10
+typedef uint32_t mem_layout;
 
 /**
  * Reason for poweron
  */
-typedef enum {
-	poweron_source_pmcpor,
-	poweron_source_apwdt_rst,
-	poweron_source_sensor_rst,
-	poweron_source_sw_rst,
-	poweron_source_deepsleep_rst,
-	poweron_source_aotag_rst,
-	poweron_source_onkey,
-	poweron_source_resetkey,
-	poweron_source_usbhotplug,
-	poweron_source_rtcalarm,
-	poweron_source_pmuwdt,
-	poweron_source_unknown = 0x7fffffff,
- } poweron_source;
+/* macro poweron source */
+#define poweron_source_pmcpor 0
+#define poweron_source_apwdt_rst 1
+#define poweron_source_sensor_rst 2
+#define poweron_source_sw_rst 3
+#define poweron_source_deepsleep_rst 4
+#define poweron_source_aotag_rst 5
+#define poweron_source_onkey 6
+#define poweron_source_resetkey 7
+#define poweron_source_usbhotplug 8
+#define poweron_source_rtcalarm 9
+#define poweron_source_pmuwdt 10
+#define poweron_source_unknown 0x7fffffff
+typedef uint32_t poweron_source;
 
  /**
   * Tracks the base and size of the Carveout
@@ -131,48 +131,47 @@ typedef struct {
 /**
  * Stores the information related to memory params
  */
-typedef enum
-{
+/* macro dram memory type */
     /// Specifies the memory type to be undefined
-    dram_memory_Type_None = 0,
+#define dram_memory_Type_None 0
 
     /// Specifies the memory type to be LPDDR2 SDRAM
-    dram_memory_type_lpddr2,
+#define dram_memory_type_lpddr2 1
 
     /// Specifies the memory type to be DDR3 SDRAM
-    dram_memory_type_ddr3,
+#define dram_memory_type_ddr3 2
 
-    dram_memory_type_lpddr4,
+#define dram_memory_type_lpddr4 3
 
-    dram_memory_type_num,
-    dram_memory_type_force32 = 0x7FFFFFF
-} dram_memory_type;
+#define dram_memory_type_num 4
+#define dram_memory_type_force32 0x7FFFFFF
+typedef uint32_t dram_memory_type;
 
 /**
  * Defines the BootDevice Type available
  */
-typedef enum {
+/* macro fuse boot device */
 	/* boot device is sdmmc */
-	BOOT_DEVICE_SDMMC,
+#define BOOT_DEVICE_SDMMC 0
 
 	/* boot device is snor */
-	BOOT_DEVICE_SNOR_FLASH,
+#define BOOT_DEVICE_SNOR_FLASH 1
 
 	/* boot device is spi */
-	BOOT_DEVICE_SPI_FLASH,
+#define BOOT_DEVICE_SPI_FLASH 2
 
 	/* boot device is sata */
-	BOOT_DEVICE_SATA,
+#define BOOT_DEVICE_SATA 3
 
 	/* boot device is usb3 */
-	BOOT_DEVICE_USB3,
+#define BOOT_DEVICE_USB3 4
 
 	/*reserved boot device */
-	BOOT_DEVICE_RESVD,
+#define BOOT_DEVICE_RESVD 5
 
 	/* max number of boot devices */
-	BOOT_DEVICE_MAX,
-} fuse_boot_device;
+#define BOOT_DEVICE_MAX 6
+typedef uint32_t fuse_boot_device;
 
 /**
  * Device type and instance
@@ -249,45 +248,45 @@ typedef struct {
 /**
  * Specifies different modes of booting.
  */
-typedef enum {
+/* macro boot mode */
 	/* Specifies a default (unset) value. */
-	BOOT_MODE_NONE = 0,
+#define BOOT_MODE_NONE 0
 
 	/* Specifies a cold boot */
-	BOOT_MODE_COLD,
+#define BOOT_MODE_COLD 1
 
 	/* Specifies the BR entered RCM */
-	BOOT_MODE_RECOVERY,
+#define BOOT_MODE_RECOVERY 2
 
 	/* Specifies UART boot (only available internal to NVIDIA) */
-	BOOT_MODE_UART,
-} boot_mode;
+#define BOOT_MODE_UART 3
+typedef uint32_t boot_mode;
 
 /**
  * Specifies different operating modes.
  */
-typedef enum {
+/* macro opmode type */
 	/* Invalid Operating mode */
-	OPMODE_NONE = 0,
+#define OPMODE_NONE 0
 
 	/* Preproduction mode */
-	OPMODE_PRE_PRODUCTION,
+#define OPMODE_PRE_PRODUCTION 1
 
 	/* failure analysis mode */
-	OPMODE_FAILURE_ANALYSIS,
+#define OPMODE_FAILURE_ANALYSIS 2
 
 	/* nvproduction mode */
-	OPMODE_NV_PRODUCTION,
+#define OPMODE_NV_PRODUCTION 3
 
 	/* non-secure mode */
-	OPMODE_ODM_PRODUCTION_NON_SECURE,
+#define OPMODE_ODM_PRODUCTION_NON_SECURE 4
 
 	/* sbk mode */
-	OPMODE_ODM_PRODUCTION_SECURE_SBK,
+#define OPMODE_ODM_PRODUCTION_SECURE_SBK 5
 
 	/* pkc mode */
-	OPMODE_ODM_PRODUCTION_SECURE_PKC,
-} opmode_type;
+#define OPMODE_ODM_PRODUCTION_SECURE_PKC 6
+typedef uint32_t opmode_type;
 
 typedef struct {
 	/* Active BCT block */
@@ -381,111 +380,111 @@ typedef struct {
 /**
  * Specifies enum for accessing shared information.
  */
-typedef enum {
+/* macro boot arg type */
 	/* get revision */
-	BOOT_ARG_REVISION = 0x0,
+#define BOOT_ARG_REVISION 0x0
 
 	/* get crc of shared structure */
-	BOOT_ARG_CRC,
+#define BOOT_ARG_CRC 0x1
 
 	/* get early uart base */
-	BOOT_ARG_UART_ADDR,
+#define BOOT_ARG_UART_ADDR 0x2
 
 	/* get dram botton size */
-	BOOT_ARG_DRAM_BOTTOM,
+#define BOOT_ARG_DRAM_BOTTOM 0x3
 
 	/* get primary mem layout */
-	BOOT_ARG_MEM_LAYOUT_PRIMARY,
+#define BOOT_ARG_MEM_LAYOUT_PRIMARY 0x4
 
 	/* get extended mem layout */
-	BOOT_ARG_MEM_LAYOUT_EXTENDED,
+#define BOOT_ARG_MEM_LAYOUT_EXTENDED 0x5
 
 	/* get vpr mem layout */
-	BOOT_ARG_MEM_LAYOUT_VPR,
+#define BOOT_ARG_MEM_LAYOUT_VPR 0x6
 
 	/* get tsec mem layout */
-	BOOT_ARG_MEM_LAYOUT_TSEC,
+#define BOOT_ARG_MEM_LAYOUT_TSEC 0x7
 
 	/* get secureos mem layout */
-	BOOT_ARG_MEM_LAYOUT_SECUREOS,
+#define BOOT_ARG_MEM_LAYOUT_SECUREOS 0x8
 
 	/* get lp0 mem layout */
-	BOOT_ARG_MEM_LAYOUT_LP0,
+#define BOOT_ARG_MEM_LAYOUT_LP0 0x9
 
 	/* get xusb mem layout */
-	BOOT_ARG_MEM_LAYOUT_XUSB,
+#define BOOT_ARG_MEM_LAYOUT_XUSB 0xA
 
 	/* get nck mem layout */
-	BOOT_ARG_MEM_LAYOUT_NCK,
+#define BOOT_ARG_MEM_LAYOUT_NCK 0xB
 
 	/* get debug mem layout */
-	BOOT_ARG_MEM_LAYOUT_DEBUG,
+#define BOOT_ARG_MEM_LAYOUT_DEBUG 0xC
 
 	/* get poweron source */
-	BOOT_ARG_POWERON_SRC,
+#define BOOT_ARG_POWERON_SRC 0xD
 
 	/* get poweron source */
-	BOOT_ARG_PMIC_RESET_REASON,
+#define BOOT_ARG_PMIC_RESET_REASON 0xE
 
 	/* get secondary boot device info */
-	BOOT_ARG_BOOT_DEV,
+#define BOOT_ARG_BOOT_DEV 0xF
 
 	/* get storage boot device info */
-	BOOT_ARG_STORAGE_DEV,
+#define BOOT_ARG_STORAGE_DEV 0x10
 
 	/* get uid of the chip */
-	BOOT_ARG_UID,
+#define BOOT_ARG_UID 0x11
 
 	/* get memory type of dram */
-	BOOT_ARG_MEM_TYPE,
+#define BOOT_ARG_MEM_TYPE 0x12
 
 	/* get processor board id */
-	BOOT_ARG_PROC_BOARD,
+#define BOOT_ARG_PROC_BOARD 0x13
 
 	/* get pmu board id */
-	BOOT_ARG_PMU_BOARD,
+#define BOOT_ARG_PMU_BOARD 0x14
 
 	/* get display board id */
-	BOOT_ARG_DISPLAY_BOARD,
+#define BOOT_ARG_DISPLAY_BOARD 0x15
 
 	/* get bct size in bytes */
-	BOOT_ARG_BCT_SIZE,
+#define BOOT_ARG_BCT_SIZE 0x16
 
 	/* get tboot start offset */
-	BOOT_ARG_TBOOT_START,
+#define BOOT_ARG_TBOOT_START 0x17
 
 	/* get block sie in bytes */
-	BOOT_ARG_BLOCK_SIZE,
+#define BOOT_ARG_BLOCK_SIZE 0x18
 
 	/* get page size in bytes */
-	BOOT_ARG_PAGE_SIZE,
+#define BOOT_ARG_PAGE_SIZE 0x19
 
 	/* get boot type  (cold, uart or recovery) */
-	BOOT_ARG_BOOT_TYPE,
+#define BOOT_ARG_BOOT_TYPE 0x1A
 
 	/* get the operating mode */
-	BOOT_ARG_OPMODE,
+#define BOOT_ARG_OPMODE 0x1B
 
 	/* get the Mts Start Address */
-	BOOT_ARG_MTS_START,
+#define BOOT_ARG_MTS_START 0x1C
 	/* get Bpmp FW mem layout */
-	BOOT_ARG_MEM_LAYOUT_BPMPFW,
+#define BOOT_ARG_MEM_LAYOUT_BPMPFW 0x1D
 
 	/* get RAM dump mem layout */
-	BOOT_ARG_MEM_LAYOUT_NVDUMPER,
+#define BOOT_ARG_MEM_LAYOUT_NVDUMPER 0x1E
 
 	/* get Active BCT info */
-	BOOT_ARG_ACTIVE_BCT,
+#define BOOT_ARG_ACTIVE_BCT 0x1F
 
 	/* get bl dtb load address */
-	BOOT_ARG_BL_DTB_LOAD_ADDR,
+#define BOOT_ARG_BL_DTB_LOAD_ADDR 0x20
 
 	/* get kernel dtb load address */
-	BOOT_ARG_KERNEL_DTB_LOAD_ADDR,
+#define BOOT_ARG_KERNEL_DTB_LOAD_ADDR 0x21
 
 	/* get powerkey long press state */
-	BOOT_ARG_POWERKEY_LONG_PRESS_STATE,
-} boot_arg_type;
+#define BOOT_ARG_POWERKEY_LONG_PRESS_STATE 0x22
+typedef uint32_t boot_arg_type;
 
 /** @brief Validates CRC of the shared structure.
  *

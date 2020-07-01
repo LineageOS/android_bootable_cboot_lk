@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2014-2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -13,13 +13,16 @@ LOCAL_PATH := $(call my-dir)
 
 include $(NVIDIA_DEFAULTS)
 
+ifneq ($(filter t186,$(_cboot_project)),)
 LOCAL_MODULE        := cboot
+else
+LOCAL_MODULE        := cboot_$(_cboot_project)
+endif
 LOCAL_MODULE_SUFFIX := .bin
 LOCAL_MODULE_PATH   := $(PRODUCT_OUT)
 LOCAL_MODULE_CLASS  := EXECUTABLES
 
 _cboot_intermediates := $(call intermediates-dir-for,$(LOCAL_MODULE_CLASS),$(LOCAL_MODULE))
-_cboot_project := $(TARGET_TEGRA_VERSION)
 
 LOCAL_BUILT_MODULE_STEM := build-$(_cboot_project)/lk.bin
 _cboot_lk_bin := $(_cboot_intermediates)/$(LOCAL_BUILT_MODULE_STEM)
@@ -33,12 +36,19 @@ else
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
 	TOOLCHAIN_PREFIX=$(ARM_EABI_TOOLCHAIN)/../../../aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 endif
+
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
 		BUILDROOT=$(PWD)/$(_cboot_intermediates) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
+		TEGRA_TOP=$(abspath $(TEGRA_TOP)) \
 		DEBUG=2 \
 		-C $(LOCAL_PATH)
+
+# Pass the PLATFORM_IS_AFTER_N value to cboot build
+$(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
+		PLATFORM_IS_AFTER_N=$(PLATFORM_IS_AFTER_N)
+
 $(_cboot_lk_bin): PRIVATE_MODULE := $(LOCAL_MODULE)
 
 .PHONY: $(_cboot_lk_bin)
@@ -50,7 +60,3 @@ include $(NVIDIA_BASE)
 include $(BUILD_SYSTEM)/base_rules.mk
 include $(NVIDIA_POST)
 
-# Clean variables
-_cboot_intermediates :=
-_cboot_project :=
-_cboot_lk_bin :=

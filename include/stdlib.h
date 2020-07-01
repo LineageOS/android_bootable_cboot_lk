@@ -39,13 +39,19 @@ long atol(const char *num);
 unsigned long atoul(const char *num);
 unsigned long long atoull(const char *num);
 
+#ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+#ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
 
 #define ROUNDUP(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
 #define ROUNDDOWN(a, b) ((a) & ~((b) - 1))
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
 
 /* allocate a buffer on the stack aligned and padded to the cpu's cache line size */
 #define STACKBUF_DMA_ALIGN(var, size) \

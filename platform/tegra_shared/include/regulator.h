@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -15,10 +15,10 @@
 #include <err.h>
 
 /* defines regulator volt type */
-typedef enum {
-	USER_DEFINED_VOLTS = 0,
-	STANDARD_VOLTS,
-} regulator_volt_type;
+/* macro regulator volt type */
+#define USER_DEFINED_VOLTS 0
+#define STANDARD_VOLTS 1
+typedef uint32_t regulator_volt_type;
 
 status_t regulator_is_fixed(int32_t phandle, bool *is_fixed);
 

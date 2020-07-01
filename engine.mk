@@ -36,10 +36,14 @@ ifeq ($(PROJECT),)
 $(error No project specified.  Use "make projectname" or put "PROJECT := projectname" in local.mk)
 endif
 
+ifeq ($(TEGRA_TOP),)
+$(error TEGRA_TOP undefined)
+endif
+
 DEBUG ?= 2
 
 BUILDROOT ?= .
-BUILDDIR := $(BUILDROOT)/build-$(PROJECT)
+BUILDDIR := $(abspath $(BUILDROOT)/build-$(PROJECT))
 OUTBIN := $(BUILDDIR)/lk.bin
 OUTELF := $(BUILDDIR)/lk.elf
 CONFIGHEADER := $(BUILDDIR)/build_config.h
@@ -134,6 +138,7 @@ include platform/$(PLATFORM)/rules.mk
 $(info PROJECT = $(PROJECT))
 $(info PLATFORM = $(PLATFORM))
 $(info TARGET = $(TARGET))
+$(info TEGRA_TOP = $(TEGRA_TOP))
 
 include arch/$(ARCH)/rules.mk
 include top/rules.mk

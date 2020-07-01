@@ -20,23 +20,31 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <debug.h>
-#include <trace.h>
+
 #include <assert.h>
 #include <err.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdio.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <kernel/thread.h>
 #include <kernel/mutex.h>
 #include <lib/console.h>
-#if WITH_LIB_ENV
-#include <lib/env.h>
-#endif
+#include <tegrabl_debug.h>
 
 #ifndef CONSOLE_ENABLE_HISTORY
 #define CONSOLE_ENABLE_HISTORY 1
+#endif
+
+#undef printf
+#define printf tegrabl_printf
+#undef dprintf
+#define dprintf pr_debug
+
+/* enable for debugging */
+#if 0
+#undef pr_debug
+#define pr_debug tegrabl_printf
 #endif
 
 #define LINE_LEN 128
@@ -49,9 +57,6 @@
 
 /* debug buffer */
 static char *debug_buffer;
-
-/* echo commands? */
-static bool echo = true;
 
 /* command processor state */
 static mutex_t *command_lock;
@@ -82,32 +87,30 @@ extern cmd_block __commands_end;
 
 static int cmd_help(int argc, const cmd_args *argv);
 static int cmd_echo(int argc, const cmd_args *argv);
-static int cmd_test(int argc, const cmd_args *argv);
+static int cmd_exit(int argc, const cmd_args *argv);
 #if CONSOLE_ENABLE_HISTORY
 static int cmd_history(int argc, const cmd_args *argv);
 #endif
 
 STATIC_COMMAND_START
-STATIC_COMMAND("help", "this list", &cmd_help)
-STATIC_COMMAND("echo", NULL, &cmd_echo)
-#if LK_DEBUGLEVEL > 1
-STATIC_COMMAND("test", "test the command processor", &cmd_test)
+STATIC_COMMAND("help", "print command description/usage", &cmd_help)
+STATIC_COMMAND("?", "alias for \'help\'", &cmd_help)
+STATIC_COMMAND("echo", "echo args to console", &cmd_echo)
+STATIC_COMMAND("exit", "exit shell", &cmd_exit)
 #if CONSOLE_ENABLE_HISTORY
 STATIC_COMMAND("history", "command history", &cmd_history)
-#endif
 #endif
 STATIC_COMMAND_END(help);
 
 int console_init(void)
 {
-	LTRACE_ENTRY;
-
 	command_lock = calloc(sizeof(mutex_t), 1);
 	mutex_init(command_lock);
 
 	/* add all the statically defined commands to the list */
 	cmd_block *block;
 	for (block = &__commands_start; block != &__commands_end; block++) {
+		dprintf("register command: %s\n", block->list->cmd_str);
 		console_register_commands(block);
 	}
 
@@ -143,12 +146,12 @@ static inline uint ptrprev(uint ptr)
 static void dump_history(void)
 {
 	printf("command history:\n");
-	uint ptr = ptrprev(history_next);
+	uint ptr = 0;
 	int i;
 	for (i=0; i < HISTORY_LEN; i++) {
 		if (history_line(ptr)[0] != 0)
-			printf("\t%s\n", history_line(ptr));
-		ptr = ptrprev(ptr);
+			printf("%s\n", history_line(ptr));
+		ptr = ptrnext(ptr);
 	}
 }
 
@@ -220,6 +223,7 @@ static const cmd *match_command(const char *command)
 		const cmd *curr_cmd = block->list;
 		for (i = 0; i < block->count; i++) {
 			if (strcmp(command, curr_cmd[i].cmd_str) == 0) {
+				dprintf("%s command found\n", curr_cmd[i].cmd_str);
 				return &curr_cmd[i];
 			}
 		}
@@ -231,7 +235,6 @@ static const cmd *match_command(const char *command)
 static int read_debug_line(const char **outbuffer, void *cookie)
 {
 	int pos = 0;
-	int escape_level = 0;
 #if CONSOLE_ENABLE_HISTORY
 	uint history_cursor = start_history_cursor();
 #endif
@@ -241,101 +244,65 @@ static int read_debug_line(const char **outbuffer, void *cookie)
 	for (;;) {
 		/* loop until we get a char */
 		int c;
-		if ((c = getchar()) < 0)
+		if ((c = tegrabl_getc()) < 0)
 			continue;
 
-//		TRACEF("c = 0x%hhx\n", c);
+		dprintf("ch = %#x\n", c);
 
-		if (escape_level == 0) {
-			switch (c) {
-				case '\r':
-				case '\n':
-					if (echo)
-						putchar('\n');
-					goto done;
+		switch (c) {
+			case '\r':
+			case '\n':
+				tegrabl_puts("\n");
+				goto done;
 
-				case 0x7f: // backspace or delete
-				case 0x8:
-					if (pos > 0) {
-						pos--;
-						fputs("\x1b[1D", stdout); // move to the left one
-						putchar(' ');
-						fputs("\x1b[1D", stdout); // move to the left one
-					}
-					break;
+			case 0x3:
+				dprintf("ctrl+C was pressed\n");
+				tegrabl_puts("\n");
+				buffer[0] = 0;
+				goto done;
 
-				case 0x1b: // escape
-					escape_level++;
-					break;
+			case 0x7f: // backspace or delete
+			case 0x8:
+				if (pos > 0) {
+					pos--;
+					tegrabl_puts("\x1b[1D"); // move to the left one
+					tegrabl_putc(' ');
+					tegrabl_puts("\x1b[1D"); // move to the left one
+				}
+				break;
 
-				default:
-					buffer[pos++] = c;
-					if (echo)
-						putchar(c);
-			}
-		} else if (escape_level == 1) {
-			// inside an escape, look for '['
-			if (c == '[') {
-				escape_level++;
-			} else {
-				// we didn't get it, abort
-				escape_level = 0;
-			}
-		} else { // escape_level > 1
-			switch (c) {
-				case 67: // right arrow
-					buffer[pos++] = ' ';
-					if (echo)
-						putchar(' ');
-					break;
-				case 68: // left arrow
-					if (pos > 0) {
-						pos--;
-						if (echo) {
-							fputs("\x1b[1D", stdout); // move to the left one
-							putchar(' ');
-							fputs("\x1b[1D", stdout); // move to the left one
-						}
-					}
-					break;
 #if CONSOLE_ENABLE_HISTORY
-				case 65: // up arrow -- previous history
-				case 66: // down arrow -- next history
-					// wipe out the current line
-					while (pos > 0) {
-						pos--;
-						if (echo) {
-							fputs("\x1b[1D", stdout); // move to the left one
-							putchar(' ');
-							fputs("\x1b[1D", stdout); // move to the left one
-						}
-					}
+			case 27: // up arrow -- previous history
+				// wipe out the current line
+				while (pos > 0) {
+					pos--;
+					tegrabl_puts("\x1b[1D"); // move to the left one
+					tegrabl_putc(' ');
+					tegrabl_puts("\x1b[1D"); // move to the left one
+				}
 
-					if (c == 65)
-						strlcpy(buffer, prev_history(&history_cursor), LINE_LEN);
-					else
-						strlcpy(buffer, next_history(&history_cursor), LINE_LEN);
-					pos = strlen(buffer);
-					if (echo)
-						fputs(buffer, stdout);
-					break;
+				strlcpy(buffer, prev_history(&history_cursor), LINE_LEN);
+
+				pos = strlen(buffer);
+				tegrabl_puts(buffer);
+				break;
 #endif
-				default:
-					break;
-			}
-			escape_level = 0;
+
+			default:
+				buffer[pos++] = c;
+				tegrabl_putc(c);
 		}
 
 		/* end of line. */
 		if (pos == (LINE_LEN - 1)) {
-			fputs("\nerror: line too long\n", stdout);
+			tegrabl_puts("\nerror: line too long\n");
 			pos = 0;
 			goto done;
 		}
 	}
 
 done:
-//	dprintf("returning pos %d\n", pos);
+	dprintf("returning pos %d\n", pos);
 
 	// null terminate
 	buffer[pos] = 0;
@@ -351,7 +318,8 @@ done:
 	return pos;
 }
 
-static int tokenize_command(const char *inbuffer, const char **continuebuffer, char *buffer, size_t buflen, cmd_args *args, int arg_count)
+static int tokenize_command(const char *inbuffer, const char **continuebuffer, char *buffer,
+	size_t buflen, cmd_args *args, int arg_count)
 {
 	int inpos;
 	int outpos;
@@ -382,7 +350,7 @@ static int tokenize_command(const char *inbuffer, const char **continuebuffer, c
 	for (;;) {
 		char c = inbuffer[inpos];
 
-//		dprintf(SPEW, "c 0x%hhx state %d arg %d inpos %d pos %d\n", c, state, arg, inpos, outpos);
+//		dprintf("c %#x state %d arg %d inpos %d pos %d\n", c, state, arg, inpos, outpos);
 
 		switch (state) {
 			case INITIAL:
@@ -485,12 +453,10 @@ static int tokenize_command(const char *inbuffer, const char **continuebuffer, c
 				if (c == '\0' || isspace(c) || c == ';') {
 					// hit the end of variable, look it up and stick it inline
 					varname[varnamepos] = 0;
-#if WITH_LIB_ENV
-					int rc = env_get(varname, &buffer[outpos], buflen - outpos);
-#else
+
 					(void)varname[0]; // nuke a warning
 					int rc = -1;
-#endif
+
 					if (rc < 0) {
 						buffer[outpos++] = '0';
 						buffer[outpos++] = 0;
@@ -546,9 +512,6 @@ static void convert_args(int argc, cmd_args *argv)
 static status_t command_loop(int (*get_line)(const char **, void *), void *get_line_cookie, bool showprompt, bool locked)
 {
 	bool exit;
-#if WITH_LIB_ENV
-	bool report_result;
-#endif
 	cmd_args *args = NULL;
 	const char *buffer;
 	const char *continuebuffer;
@@ -571,7 +534,7 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 		// read a new line if it hadn't been split previously and passed back from tokenize_command
 		if (continuebuffer == NULL) {
 			if (showprompt)
-				fputs("] ", stdout);
+				tegrabl_puts("TEGRA194 # ");
 
 			int len = get_line(&buffer, get_line_cookie);
 			if (len < 0)
@@ -582,10 +545,10 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 			buffer = continuebuffer;
 		}
 
-//		dprintf("line = '%s'\n", buffer);
+		dprintf("line = '%s'\n", buffer);
 
 		/* tokenize the line */
-		int argc = tokenize_command(buffer, &continuebuffer, outbuf, outbuflen, 
+		int argc = tokenize_command(buffer, &continuebuffer, outbuf, outbuflen,
 		                            args, MAX_NUM_ARGS);
 		if (argc < 0) {
 			if (showprompt)
@@ -595,9 +558,9 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 			continue;
 		}
 
-//		dprintf("after tokenize: argc %d\n", argc);
-//		for (int i = 0; i < argc; i++)
-//			dprintf("%d: '%s'\n", i, args[i].str);
+		dprintf("after tokenize: argc %d\n", argc);
+		for (int i = 0; i < argc; i++)
+			dprintf("%d: '%s'\n", i, args[i].str);
 
 		/* convert the args */
 		convert_args(argc, args);
@@ -606,7 +569,7 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 		const cmd *command = match_command(args[0].str);
 		if (!command) {
 			if (showprompt)
-				printf("command not found\n");
+				printf("command not found - try \'help\'\n");
 			continue;
 		}
 
@@ -616,23 +579,7 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 		abort_script = false;
 		lastresult = command->cmd_callback(argc, args);
 
-#if WITH_LIB_ENV
-		bool report_result;
-		env_get_bool("reportresult", &report_result, false);
-		if (report_result) {
-			if (lastresult < 0)
-				printf("FAIL %d\n", lastresult);
-			else
-				printf("PASS %d\n", lastresult);
-		}
-#endif
-
-#if WITH_LIB_ENV
-		// stuff the result in an environment var
-		env_set_int("?", lastresult, true);
-#endif
-
-		// someone must have aborted the current script
+		// if someone intend to abort the shell
 		if (abort_script)
 			exit = true;
 		abort_script = false;
@@ -652,7 +599,7 @@ no_mem_error:
 	if (args)
 		free(args);
 
-	dprintf(INFO, "%s: not enough memory\n", __func__);
+	printf("%s: not enough memory\n", __func__);
 	return ERR_NO_MEMORY;
 }
 
@@ -665,85 +612,13 @@ void console_start(void)
 {
 	debug_buffer = malloc(LINE_LEN);
 
-	dprintf(INFO, "entering main console loop\n");
+	printf("entering main console loop\n");
 
+	command_loop(&read_debug_line, NULL, true, false);
 
-	while (command_loop(&read_debug_line, NULL, true, false) == NO_ERROR)
-		;
-
-	dprintf(INFO, "exiting main console loop\n");
+	printf("exiting main console loop\n");
 
 	free (debug_buffer);
-}
-
-struct line_read_struct {
-	const char *string;
-	int pos;
-	char *buffer;
-	size_t buflen;
-};
-
-static int fetch_next_line(const char **buffer, void *cookie)
-{
-	struct line_read_struct *lineread = (struct line_read_struct *)cookie;
-
-	// we're done
-	if (lineread->string[lineread->pos] == 0)
-		return -1;
-
-	size_t bufpos = 0;
-	while (lineread->string[lineread->pos] != 0) {
-		if (lineread->string[lineread->pos] == '\n') {
-			lineread->pos++;
-			break;
-		}
-		if (bufpos == (lineread->buflen - 1))
-			break;
-		lineread->buffer[bufpos] = lineread->string[lineread->pos];
-		lineread->pos++;
-		bufpos++;
-	}
-	lineread->buffer[bufpos] = 0;
-
-	*buffer = lineread->buffer;
-
-	return bufpos;
-}
-
-static int console_run_script_etc(const char *string, bool locked)
-{
-	struct line_read_struct lineread;
-
-	lineread.string = string;
-	lineread.pos = 0;
-	lineread.buffer = malloc(LINE_LEN);
-	lineread.buflen = LINE_LEN;
-
-	command_loop(&fetch_next_line, (void *)&lineread, false, locked);
-
-	free(lineread.buffer);
-
-	return lastresult;
-}
-
-int console_run_script(const char *string)
-{
-	return console_run_script_etc(string, false);
-}
-
-int console_run_script_locked(const char *string)
-{
-	return console_run_script_etc(string, true);
-}
-
-console_cmd console_get_command_handler(const char *commandstr)
-{
-	const cmd *command = match_command(commandstr);
-
-	if (command)
-		return command->cmd_callback;
-	else
-		return NULL;
 }
 
 void console_register_commands(cmd_block *block)
@@ -767,7 +642,7 @@ static int cmd_help(int argc, const cmd_args *argv)
 		const cmd *curr_cmd = block->list;
 		for (i = 0; i < block->count; i++) {
 			if (curr_cmd[i].help_str)
-				printf("\t%-16s: %s\n", curr_cmd[i].cmd_str, curr_cmd[i].help_str);
+				printf("%s - %s\n", curr_cmd[i].cmd_str, curr_cmd[i].help_str);
 		}
 	}
 
@@ -776,21 +651,22 @@ static int cmd_help(int argc, const cmd_args *argv)
 
 static int cmd_echo(int argc, const cmd_args *argv)
 {
-	if (argc > 1)
-		echo = argv[1].b;
+	int i;
+
+	if (argc > 1) {
+		for (i = 1; i < argc; i++)
+			printf("%s ", argv[i].str);
+
+		printf("\n");
+	}
 	return NO_ERROR;
 }
 
-#if LK_DEBUGLEVEL > 1
-static int cmd_test(int argc, const cmd_args *argv)
+static int cmd_exit(int argc, const cmd_args *argv)
 {
-	int i;
+	dprintf("\tEXIT SHELL\n");
+	console_abort_script();
 
-	printf("argc %d, argv %p\n", argc, argv);
-	for (i = 0; i < argc; i++)
-		printf("\t%d: str '%s', i %d, u %#x, b %d\n", i, argv[i].str, argv[i].i, argv[i].u, argv[i].b);
-
-	return 0;
+	return NO_ERROR;
 }
-#endif
 
