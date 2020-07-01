@@ -60,7 +60,7 @@
 #include <tegrabl_global_defs.h>
 #include <tegrabl_sata.h>
 #if defined(CONFIG_VIC_SCRUB)
-#include <vic.h>
+#include <tegrabl_vic.h>
 #endif
 #include <dram_ecc.h>
 #if defined(CONFIG_ENABLE_PMIC_MAX77620)
@@ -292,7 +292,9 @@ int platform_use_identity_mmu_mappings(void)
 
 void platform_init_mmu_mappings(void)
 {
-	uint32_t idx;
+	uint32_t idx, i;
+	struct tegrabl_linuxboot_memblock *free_dram_regions = NULL;
+	uint32_t free_dram_block_count;
 
 	for (idx = 0; idx < ARRAY_SIZE(mmio_mappings); idx++) {
 		arm64_mmu_map(mmio_mappings[idx].addr, mmio_mappings[idx].addr,
@@ -301,7 +303,6 @@ void platform_init_mmu_mappings(void)
 	}
 
 	platform_init_boot_param();
-
 	/*
 	 * Map the complete CARVEOUT_CPUBL_PARAMS to access CPUBL Params, BR-BCT
 	 * profiler, GR
@@ -310,11 +311,13 @@ void platform_init_mmu_mappings(void)
 					TEGRABL_CARVEOUT_CPUBL_PARAMS_SIZE,
 					MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
 
-	arm64_mmu_map(
-			(uintptr_t)boot_params->global_data.carveout[CARVEOUT_PRIMARY].base,
-			(uintptr_t)boot_params->global_data.carveout[CARVEOUT_PRIMARY].base,
-			boot_params->global_data.carveout[CARVEOUT_PRIMARY].size,
-			MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+	free_dram_block_count = get_free_dram_regions_info(&free_dram_regions);
+
+	for (i = 0; i < free_dram_block_count; i++) {
+		arm64_mmu_map((uintptr_t)free_dram_regions[i].base,
+				(uintptr_t)free_dram_regions[i].base, free_dram_regions[i].size,
+				MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+	}
 }
 
 static void platform_disable_clocks(void)
@@ -445,8 +448,9 @@ void platform_init(void)
 	}
 
 #if defined(CONFIG_ENABLE_DRAM_ECC)
-	if (cboot_dram_ecc_enabled()) {
-		err = CbDramEccScrub();
+	if (cboot_dram_ecc_enabled() &&
+			(boot_params->global_data.disable_staged_scrub == 0)) {
+		err = cb_dram_ecc_scrub();
 		if (err != TEGRABL_NO_ERROR) {
 			pr_error("Failed to Scrub DRAM\n");
 			goto fail;

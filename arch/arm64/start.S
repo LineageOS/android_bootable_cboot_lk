@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -14,8 +14,10 @@
 
 #define CPUPARAMS_TOS_PARAMS_OFFSET	0x2448
 #define CPUPARAMS_TOS_START_OFFSET	0x2468
+#define RELOC_R_AARCH64_RELATIVE_TYPE	1027
 
 .section .text.boot
+.globl _start
 FUNCTION(_start)
 	b .L__real_start
 
@@ -30,6 +32,34 @@ GicCpuBase:
 	.word 0x03882000
 
 .L__real_start:
+	/* Update the .rela.dyn offsets */
+	adr x4, _start
+	ldr x5, =MEMBASE
+	/* Calculate offset of load address relative to link address */
+	sub x18, x4, x5
+	adr x4, __reloc_begin
+	adr x5, __reloc_end
+	b reloc_point
+	/* Add offsets to relocation table */
+reloc_loop:
+	/* Check if reloc type is R_AARCH64_RELATIVE*/
+	ldr x0, [x4, #8]
+	cmp w0, #RELOC_R_AARCH64_RELATIVE_TYPE
+	b.ne incr_loop
+	/* Load r_offset */
+	ldr x0, [x4]
+	add x0, x0, x18
+	/* Load r_addend */
+	ldr x1, [x4, #16]
+	add x1, x1, x18
+	/* Store addend at updated offset */
+	str x1, [x0]
+incr_loop:
+	add x4, x4, #24
+reloc_point:
+	cmp x4, x5
+	b.lo reloc_loop
+
 	/* Read the scratch register and save the CPUBL-params pointer */
 	ldr x10, CpuBlParamsPtr
 	adr x11, CpuBlParams
@@ -140,14 +170,14 @@ skip_shift:
 
 	/* Ensure we use exception stack */
 	msr spsel, #1
-	ldr x0, =__stack_end
+	adr x0, __stack_end
 	mov sp, x0
 
 	/* clear bss */
 .L__do_bss:
 	/* NOTE: relies on __bss_start and __bss_end being 8 byte aligned */
-	ldr x0, =__bss_start
-	ldr x1, =__bss_end
+	adr x0, __bss_start
+	adr x1, __bss_end
 	mov x2, #0
 	sub x1, x1, x0
 	cbz x1, 2f

@@ -72,6 +72,8 @@ GLOBAL_LDFLAGS :=
 
 GLOBAL_COMPILEFLAGS += -ffunction-sections -fdata-sections
 GLOBAL_LDFLAGS += --gc-sections
+GLOBAL_LDFLAGS += -pie
+GLOBAL_LDFLAGS += -Bsymbolic
 GLOBAL_LDFLAGS += -L $(LKROOT)
 GLOBAL_LDFLAGS += -Map=$(OUTELF).map
 

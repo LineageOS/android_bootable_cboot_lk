@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -12,7 +12,6 @@
 #include <trace.h>
 #include <assert.h>
 #include <string.h>
-#include <stdlib.h>
 #include <compiler.h>
 #include <sys/types.h>
 #include <kernel/thread.h>
@@ -20,6 +19,11 @@
 #include <arch/mmu.h>
 #include <arch/arm64.h>
 #include <arch/defines.h>
+#include <tegrabl_carveout_id.h>
+#include <tegrabl_addressmap.h>
+#include <tegrabl_cpubl_params.h>
+#include <tegrabl_io.h>
+#include <arscratch.h>
 
 #undef ICACHE
 #undef DCACHE
@@ -459,9 +463,25 @@ void arch_map_cached(addr_t vaddr, addr_t size)
 	arm64_mmu_map(vaddr, vaddr, size, MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
 }
 
+static void arm64_init_boot_param(struct tboot_cpubl_params **boot_params)
+{
+	uint32_t scratch7;
+
+	/* Read CPUBL params pointer from SCRATCH_7 register */
+	scratch7 = NV_READ32(NV_ADDRESS_MAP_SCRATCH_BASE + SCRATCH_SCRATCH_7);
+
+	if (scratch7 < NV_ADDRESS_MAP_EMEM_BASE)
+		*boot_params = (struct tboot_cpubl_params *)(uintptr_t)
+				((uint64_t)scratch7 << CONFIG_PAGE_SIZE_LOG2);
+	else
+		*boot_params = (struct tboot_cpubl_params *)(uintptr_t)scratch7;
+}
+
 void arm64_mmu_init(void)
 {
 	uint64_t reg;
+	struct tboot_cpubl_params *boot_params;
+
 
 	/* Initialize SCTLR with sane value */
 	ARM64_WRITE_TARGET_SYSREG(SCTLR_ELx, 0x30D00800);
@@ -498,9 +518,14 @@ void arm64_mmu_init(void)
 	/* set up the translation table base */
 	ARM64_WRITE_TARGET_SYSREG(TTBR0_ELx, (uint64_t)tt_base);
 
+	/* Read boot param pointer from scratch7 register to get global data shared
+	 * from previous boot stage */
+	arm64_init_boot_param(&boot_params);
 	/* Map only cboot */
-	arm64_mmu_map(MEMBASE, MEMBASE, (addr_t) ((uintptr_t)(&_end) - MEMBASE),
-				  MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
+	arm64_mmu_map(boot_params->global_data.carveout[CARVEOUT_CPUBL].base,
+		      boot_params->global_data.carveout[CARVEOUT_CPUBL].base,
+		      (addr_t)boot_params->global_data.carveout[CARVEOUT_CPUBL].size,
+		      MMU_FLAG_CACHED | MMU_FLAG_READWRITE);
 	/* turn on the mmu */
 	ARM64_WRITE_TARGET_SYSREG(SCTLR_ELx, ARM64_READ_TARGET_SYSREG(SCTLR_ELx) |
 			SCTLR_M  | SCTLR_I | SCTLR_C);
