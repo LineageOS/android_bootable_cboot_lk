@@ -11,4 +11,6 @@ __apps_end = .;
 __devices = .;
 KEEP(*(.devices))
 __devices_end = .;
-
+__fs_impl_start = .;
+KEEP (*(.fs_impl))
+__fs_impl_end = .;

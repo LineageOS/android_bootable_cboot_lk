@@ -69,6 +69,7 @@
 #include <arscratch.h>
 #include <tegrabl_addressmap.h>
 #include <fastboot_menu.h>
+#include <nvboot_bct.h>
 
 #define TEGRABL_RSA_LENGTH 2048
 #define HASH_SZ 32
@@ -301,6 +302,37 @@ static tegrabl_error_t is_ratchet_update_required(void *blob, bool *is_required)
 }
 #endif
 
+static tegrabl_error_t flush_brbct_to_storage(uintptr_t new_bct, uint32_t size)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	struct tegrabl_partition part;
+	uint64_t part_size = 0;
+	uint64_t bct_size = 0;
+
+	err = tegrabl_brbct_update_customer_data(new_bct, size);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	err = tegrabl_partition_open("BCT", &part);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	bct_size = sizeof(NvBootConfigTable);
+	err = tegrabl_brbct_write_multiple((void *)new_bct, (void *)&part,
+									   part_size, bct_size, bct_size);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	pr_info("BRBCT write successfully to storage\n");
+
+fail:
+	tegrabl_partition_close(&part);
+	return err;
+}
+
 tegrabl_error_t fastboot_init(void)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
@@ -318,7 +350,7 @@ tegrabl_error_t fastboot_init(void)
 		return err;
 
 #if defined(IS_T186)
-	cbs.update_bct = tegrabl_brbct_update_customer_data;
+	cbs.update_bct = flush_brbct_to_storage;
 	cbs.verify_payload = verify_bl_payload;
 	cbs.get_slot_num = fastboot_a_b_get_slot_num;
 	cbs.get_slot_via_suffix = tegrabl_a_b_get_slot_via_suffix;
@@ -511,7 +543,7 @@ tegrabl_error_t fastboot_unlock_bootloader(void)
 		return error;
 
 	fastboot_ack("INFO", "Unlocking bootloader...");
-	tegrabl_odmdata_set(odm_data & (~(1 << TEGRA_BOOTLOADER_LOCK_BIT)));
+	tegrabl_odmdata_set(odm_data & (~(1 << TEGRA_BOOTLOADER_LOCK_BIT)), true);
 	fastboot_ack("INFO", "Bootloader is now unlocked.");
 
 	return TEGRABL_NO_ERROR;
@@ -528,7 +560,7 @@ tegrabl_error_t fastboot_lock_bootloader(void)
 		return error;
 
 	fastboot_ack("INFO", "Locking bootloader...");
-	tegrabl_odmdata_set(odm_data | (1 << TEGRA_BOOTLOADER_LOCK_BIT));
+	tegrabl_odmdata_set(odm_data | (1 << TEGRA_BOOTLOADER_LOCK_BIT), true);
 	fastboot_ack("INFO", "Bootloader is now locked.");
 
 	return TEGRABL_NO_ERROR;

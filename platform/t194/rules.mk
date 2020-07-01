@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -73,6 +73,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../../common/lib/a_b_boot \
 	$(LOCAL_DIR)/../../../../common/drivers/pwm \
 	$(LOCAL_DIR)/../../../../common/drivers/display \
+	$(LOCAL_DIR)/../../../../common/lib/cbo \
 	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/device_prod
 
 ifeq ($(filter t19x, $(TARGET_FAMILY)),)
@@ -128,15 +129,18 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_DEVICE_PROD=1 \
 	CONFIG_ENABLE_STAGED_SCRUBBING=1 \
 	CONFIG_ENABLE_WAR_CBOOT_STAGED_SCRUBBING=1 \
+	CONFIG_SKIP_GPCDMA_RESET=1 \
 	CONFIG_DEBUG_LOGLEVEL=TEGRABL_LOG_INFO
 
 ALLMODULE_OBJS += $(LOCAL_DIR)/../../../../t19x/common/drivers/se/prebuilt/se.mod.o
 
 # Move optional CONFIG items into sub-make files
 ifeq ($(NV_BUILD_SYSTEM_TYPE),l4t)
-include $(LOCAL_DIR)/l4t.mk
+	include $(LOCAL_DIR)/l4t.mk
+else ifeq ($(NV_BUILD_SYSTEM_TYPE),mods)
+	include $(LOCAL_DIR)/l4t.mk
 else
-include $(LOCAL_DIR)/android.mk
+	include $(LOCAL_DIR)/android.mk
 endif
 
 GLOBAL_DEFINES += WITH_CPU_EARLY_INIT=1

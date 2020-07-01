@@ -12,6 +12,7 @@
 
 #include <debug.h>
 #include <inttypes.h>
+#include <tegrabl_ar_macro.h>
 #include <arch/arm64.h>
 #include <arch/mmu.h>
 #include <arch/ops.h>
@@ -74,13 +75,21 @@
 #include <tegrabl_linuxboot_helper.h>
 #endif
 
-#if defined(CONFIG_ENABLE_CBO)
 #include <tegrabl_cbo.h>
-#endif
-
+#include <tegrabl_odmdata_soc.h>
+#include <arfuse.h>
+#include <tegrabl_drf.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <arpmc_misc.h>
 #include <tegrabl_reset_prepare.h>
+#include <tegrabl_io.h>
 
 static bool is_comb_uart_initialized = false;
+
+#define SCRATCH_WDT_GLOBAL_DISABLE SCRATCH_SECURE_RSV77_SCRATCH_0
+#define SCRATCH_READ(reg) NV_READ32((uint32_t)NV_ADDRESS_MAP_SCRATCH_BASE + ((uint32_t)(reg)))
+#define DISABLE_WDT (0xd15ab1e0U)
 
 #define LOCAL_TRACE 0
 extern int __version_start;
@@ -132,6 +141,7 @@ struct mmio_mapping_info mmio_mappings[] = {
 	{ NV_ADDRESS_MAP_XUSB_HOST_PF_CFG_BASE, NV_ADDRESS_MAP_XUSB_HOST_PF_CFG_SIZE},
 	{ NV_ADDRESS_MAP_XUSB_HOST_PF_BAR0_BASE, NV_ADDRESS_MAP_XUSB_HOST_PF_BAR0_SIZE},
 	{ NV_ADDRESS_MAP_PMC_BASE, NV_ADDRESS_MAP_PMC_SIZE },
+	{ NV_ADDRESS_MAP_PMC_MISC_BASE, NV_ADDRESS_MAP_PMC_MISC_SIZE },
 	{ NV_ADDRESS_MAP_MISC_BASE, NV_ADDRESS_MAP_MISC_SIZE },
 	{ NV_ADDRESS_MAP_MCB_BASE, NV_ADDRESS_MAP_MCB_SIZE },
 	{ NV_ADDRESS_MAP_EMCB_BASE, NV_ADDRESS_MAP_EMCB_SIZE },
@@ -199,6 +209,44 @@ static inline void platform_init_boot_param(void)
 				  (uint64_t) temp << PAGE_SIZE_LOG2 : temp);
 }
 
+static bool cpubl_wdt_global_disable(void)
+{
+	uint32_t scratch77 = 0;
+	uint32_t reg = 0;
+	uint32_t jtag_enable = 0;
+	uint32_t arm_jtag_dis = 0;
+	uint32_t nv_production_mode = 0;
+
+	scratch77 = SCRATCH_READ(SCRATCH_WDT_GLOBAL_DISABLE);
+	reg = REG_READ(PMC_MISC, PMC_MISC_DEBUG_AUTHENTICATION);
+	jtag_enable = NV_DRF_VAL(PMC_MISC, DEBUG_AUTHENTICATION, JTAG_ENABLE, reg);
+	reg = REG_READ(FUSE, FUSE_ARM_JTAG_DIS);
+	arm_jtag_dis = NV_DRF_VAL(FUSE, ARM_JTAG_DIS, ARM_JTAG_DIS, reg);
+	reg = REG_READ(FUSE, FUSE_PRODUCTION_MODE);
+	nv_production_mode = NV_DRF_VAL(FUSE, PRODUCTION_MODE, PRODUCTION_MODE, reg);
+
+	return (scratch77 == DISABLE_WDT) &&
+		((nv_production_mode == 0U) ||	((jtag_enable == 1U) && (arm_jtag_dis == 0U)));
+
+}
+
+static tegrabl_error_t platform_disable_global_wdt(bool is_storage_flush)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	uint32_t odm_data = tegrabl_odmdata_get();
+	uint32_t val = 0xffffffff;
+	bool disable_wdt_flag;
+
+	disable_wdt_flag = cpubl_wdt_global_disable();
+
+	if (true == disable_wdt_flag) {
+		val = ~((1 << DENVER_WDT_BIT_OFFSET) | (1 << PMIC_WDT_BIT_OFFSET));
+		tegrabl_odmdata_set(odm_data & val, is_storage_flush);
+		err = TEGRABL_NO_ERROR;
+	}
+
+	return err;
+}
 
 tegrabl_error_t cpubl_params_version_check(struct tboot_cpubl_params *params)
 {
@@ -211,6 +259,17 @@ tegrabl_error_t cpubl_params_version_check(struct tboot_cpubl_params *params)
 	}
 
 	return TEGRABL_NO_ERROR;
+}
+
+void wdt_enable(void)
+{
+#if defined(CONFIG_ENABLE_WDT)
+	/* Program cpu_wdt with 5th_expiry if WDT enable conditions are met*/
+	if (tegrabl_odmdata_get_config_by_name("enable-denver-wdt")) {
+		tegrabl_wdt_enable(TEGRABL_WDT_LCCPLEX, TEGRABL_WDT_EXPIRY_5, CONFIG_WDT_PERIOD_IN_EXECUTION,
+						   TEGRABL_WDT_SRC_TSCCNT_29_0);
+	}
+#endif
 }
 
 status_t platform_early_init(void)
@@ -232,7 +291,10 @@ status_t platform_early_init(void)
 	}
 
 	/* IPC initialization to use BPMP for clk config*/
-	tegrabl_ipc_init();
+	error = tegrabl_ipc_init();
+	if (error != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
 
 	error = tegrabl_brbct_init(boot_params->brbct_carveout);
 	if (error != TEGRABL_NO_ERROR) {
@@ -240,13 +302,7 @@ status_t platform_early_init(void)
 		goto fail;
 	}
 
-#if defined(CONFIG_ENABLE_WDT)
-	/* Program cpu_wdt with 5th_expiry if WDT enable conditions are met*/
-	if (tegrabl_odmdata_get_config_by_name("enable-denver-wdt")) {
-		tegrabl_wdt_enable(TEGRABL_WDT_LCCPLEX, TEGRABL_WDT_EXPIRY_5, CONFIG_WDT_PERIOD_IN_EXECUTION,
-						   TEGRABL_WDT_SRC_TSCCNT_29_0);
-	}
-#endif
+	wdt_enable();
 
 #if defined(CONFIG_ENABLE_UART)
 	if (boot_params->enable_combined_uart == 0U) {
@@ -447,7 +503,11 @@ void enter_shell_upon_user_request(void)
 
 	for (i = 4; i > 0; i--) {
 		if (tegrabl_getc_wait(500) > 0) {
+			tegrabl_display_printf(GREEN, "BOOTLOADER SHELL MODE\n");
 			tegrabl_printf("\n");
+#if defined(CONFIG_ENABLE_WDT) /*disable wdt in shell*/
+			tegrabl_wdt_disable(TEGRABL_WDT_LCCPLEX);
+#endif
 			(void)console_init();
 			console_start();
 			break;
@@ -456,6 +516,9 @@ void enter_shell_upon_user_request(void)
 		tegrabl_printf("\t%d", i);
 	}
 	tegrabl_printf("\n");
+
+	/*enable wdt again, after exiting shell*/
+	wdt_enable();
 
 	tegrabl_enable_timestamp(true);
 }
@@ -468,6 +531,7 @@ void platform_init(void)
 #if defined(CONFIG_DT_SUPPORT)
 	void *bl_dtb = NULL;
 #endif
+	bool is_cbo_read = true;
 
 #if defined(CONFIG_ENABLE_STAGED_SCRUBBING)
 	/* Staged scrubbing */
@@ -557,16 +621,6 @@ void platform_init(void)
 	}
 #endif
 
-#if defined(CONFIG_ENABLE_CBO)
-	pr_info("Load in CBoot Boot Options partition and parse it\n");
-	err = tegrabl_read_cbo(CBO_PARTITION);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_warn("%s: tegrabl_read_cbo failed with error %#x\n", __func__, err);
-	} else {
-		(void)tegrabl_cbo_parse_info();
-	}
-#endif
-
 #if defined(CONFIG_ENABLE_NCT)
 	err = tegrabl_nct_init();
 	if (err != TEGRABL_NO_ERROR) {
@@ -579,16 +633,29 @@ void platform_init(void)
 		pr_warn("Failed to override BL-DTB\n");
 	}
 
-#if defined(CONFIG_ENABLE_SHELL)
-	enter_shell_upon_user_request();
-#endif
+	err = platform_disable_global_wdt(false);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_warn("Failed to disable global wdt\n");
+	}
 
 #if defined(CONFIG_ENABLE_DISPLAY)
-
 	err = tegrabl_display_init();
 	if (err != TEGRABL_NO_ERROR) {
 		pr_warn("display init failed\n");
 	}
+#endif
+
+	pr_info("Load in CBoot Boot Options partition and parse it\n");
+	err = tegrabl_read_cbo(CBO_PARTITION);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_warn("%s: tegrabl_read_cbo failed with error %#x\n", __func__, err);
+		is_cbo_read = false;
+	}
+
+	(void)tegrabl_cbo_parse_info(is_cbo_read);
+
+#if defined(CONFIG_ENABLE_SHELL)
+	enter_shell_upon_user_request();
 #endif
 
 fail:

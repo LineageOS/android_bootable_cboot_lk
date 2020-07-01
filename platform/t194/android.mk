@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -9,6 +9,7 @@
 #
 
 GLOBAL_DEFINES += \
+	CONFIG_OS_IS_ANDROID=1 \
 	CONFIG_ENABLE_FASTBOOT=1 \
 	CONFIG_ENABLE_VERIFIED_BOOT=1 \
 	CONFIG_ENABLE_NCT=1 \
@@ -25,4 +26,5 @@ GLOBAL_DEFINES += \
 endif
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/lib/nct
+	$(LOCAL_DIR)/../../../../common/lib/nct \
+	$(LOCAL_DIR)/../../../../common/lib/tos

@@ -48,6 +48,7 @@ static int cmd_threadstats(int argc, const cmd_args *argv);
 static int cmd_threadload(int argc, const cmd_args *argv);
 static int cmd_kevlog(int argc, const cmd_args *argv);
 
+#if 0
 STATIC_COMMAND_START
 #if LK_DEBUGLEVEL > 1
 STATIC_COMMAND("threads", "list kernel threads", &cmd_threads)
@@ -60,6 +61,7 @@ STATIC_COMMAND("threadload", "toggle thread load display", &cmd_threadload)
 STATIC_COMMAND("kevlog", "dump kernel event log", &cmd_kevlog)
 #endif
 STATIC_COMMAND_END(kernel);
+#endif
 
 #if LK_DEBUGLEVEL > 1
 static int cmd_threads(int argc, const cmd_args *argv)

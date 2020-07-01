@@ -31,6 +31,7 @@
 #include <kernel/mutex.h>
 #include <lib/console.h>
 #include <tegrabl_debug.h>
+#include <var_cmd.h>
 
 #ifndef CONSOLE_ENABLE_HISTORY
 #define CONSOLE_ENABLE_HISTORY 1
@@ -57,6 +58,9 @@
 
 /* debug buffer */
 static char *debug_buffer;
+
+/* echo commands? */
+static bool echo = true;
 
 /* command processor state */
 static mutex_t *command_lock;
@@ -91,6 +95,9 @@ static int cmd_exit(int argc, const cmd_args *argv);
 #if CONSOLE_ENABLE_HISTORY
 static int cmd_history(int argc, const cmd_args *argv);
 #endif
+static int cmd_setvar(int argc, const cmd_args *argv);
+static int cmd_printvar(int argc, const cmd_args *argv);
+static int cmd_savevar(int argc, const cmd_args *argv);
 
 STATIC_COMMAND_START
 STATIC_COMMAND("help", "print command description/usage", &cmd_help)
@@ -99,6 +106,9 @@ STATIC_COMMAND("echo", "echo args to console", &cmd_echo)
 STATIC_COMMAND("exit", "exit shell", &cmd_exit)
 #if CONSOLE_ENABLE_HISTORY
 STATIC_COMMAND("history", "command history", &cmd_history)
+STATIC_COMMAND("setvar", "set a variable with user specified value", &cmd_setvar)
+STATIC_COMMAND("printvar", "print value of specified variable", &cmd_printvar)
+/*STATIC_COMMAND("savevar", "save all the variables in persistent storage", &cmd_savevar)*/ /*TODO*/
 #endif
 STATIC_COMMAND_END(help);
 
@@ -235,6 +245,7 @@ static const cmd *match_command(const char *command)
 static int read_debug_line(const char **outbuffer, void *cookie)
 {
 	int pos = 0;
+	int escape_level = 0;
 #if CONSOLE_ENABLE_HISTORY
 	uint history_cursor = start_history_cursor();
 #endif
@@ -247,50 +258,90 @@ static int read_debug_line(const char **outbuffer, void *cookie)
 		if ((c = tegrabl_getc()) < 0)
 			continue;
 
-		dprintf("ch = %#x\n", c);
+		dprintf("c = %x\n", c);
 
-		switch (c) {
-			case '\r':
-			case '\n':
-				tegrabl_puts("\n");
-				goto done;
+		if (escape_level == 0) {
+			switch (c) {
+				case '\r':
+				case '\n':
+					if (echo)
+						tegrabl_puts("\n");
+					goto done;
 
-			case 0x3:
-				dprintf("ctrl+C was pressed\n");
-				tegrabl_puts("\n");
-				buffer[0] = 0;
-				goto done;
+				case 0x7f: // backspace or delete
+				case 0x8:
+					if (pos > 0) {
+						pos--;
+						tegrabl_puts("\b");
+						tegrabl_putc(' ');
+						tegrabl_puts("\b"); // move to the left one
+					}
+					break;
 
-			case 0x7f: // backspace or delete
-			case 0x8:
-				if (pos > 0) {
-					pos--;
-					tegrabl_puts("\x1b[1D"); // move to the left one
-					tegrabl_putc(' ');
-					tegrabl_puts("\x1b[1D"); // move to the left one
-				}
-				break;
+				case 0x1b: // escape
+					/* arrow keys with 3 byte code sequence is not supported */
+					// escape_level++;
+					/* alt + arrow key is supported */
+					escape_level = 2;
+					break;
 
+				default:
+					buffer[pos++] = c;
+					if (echo)
+						tegrabl_putc(c);
+			}
+		} else if (escape_level == 1) {
+			// inside an escape, look for '['
+			if (c == '[') {
+				escape_level++;
+			} else {
+				// we didn't get it, abort
+				escape_level = 0;
+			}
+		} else { // escape_level > 1
+			switch (c) {
+				case 67: // right arrow
+					buffer[pos++] = ' ';
+					if (echo) {
+						tegrabl_putc(' ');
+					}
+					break;
+				case 68: // left arrow
+					if (pos > 0) {
+						pos--;
+						if (echo) {
+							tegrabl_puts("\b"); // move to the left one
+							tegrabl_putc(' ');
+							tegrabl_puts("\b"); // move to the left one
+						}
+					}
+					break;
 #if CONSOLE_ENABLE_HISTORY
-			case 27: // up arrow -- previous history
-				// wipe out the current line
-				while (pos > 0) {
-					pos--;
-					tegrabl_puts("\x1b[1D"); // move to the left one
-					tegrabl_putc(' ');
-					tegrabl_puts("\x1b[1D"); // move to the left one
-				}
+				case 65: // up arrow -- previous history
+				case 66: // down arrow -- next history
+					// wipe out the current line
+					while (pos > 0) {
+						pos--;
+						if (echo) {
+							tegrabl_puts("\b"); // move to the left one
+							tegrabl_putc(' ');
+							tegrabl_puts("\b"); // move to the left one
+						}
+					}
 
-				strlcpy(buffer, prev_history(&history_cursor), LINE_LEN);
-
-				pos = strlen(buffer);
-				tegrabl_puts(buffer);
-				break;
+					if (c == 65)
+						strlcpy(buffer, prev_history(&history_cursor), LINE_LEN);
+					else
+						strlcpy(buffer, next_history(&history_cursor), LINE_LEN);
+					pos = strlen(buffer);
+					if (echo)
+						tegrabl_puts(buffer);
+					break;
 #endif
-
-			default:
-				buffer[pos++] = c;
-				tegrabl_putc(c);
+				default:
+					break;
+			}
+			escape_level = 0;
 		}
 
 		/* end of line. */
@@ -302,7 +353,7 @@ static int read_debug_line(const char **outbuffer, void *cookie)
 	}
 
 done:
-	dprintf("returning pos %d\n", pos);
+//  dprintf("returning pos %d\n", pos);
 
 	// null terminate
 	buffer[pos] = 0;
@@ -549,7 +600,7 @@ static status_t command_loop(int (*get_line)(const char **, void *), void *get_l
 
 		/* tokenize the line */
 		int argc = tokenize_command(buffer, &continuebuffer, outbuf, outbuflen,
-		                            args, MAX_NUM_ARGS);
+									args, MAX_NUM_ARGS);
 		if (argc < 0) {
 			if (showprompt)
 				printf("syntax error\n");
@@ -612,11 +663,11 @@ void console_start(void)
 {
 	debug_buffer = malloc(LINE_LEN);
 
-	printf("entering main console loop\n");
+	dprintf("entering main console loop\n");
 
 	command_loop(&read_debug_line, NULL, true, false);
 
-	printf("exiting main console loop\n");
+	dprintf("exiting main console loop\n");
 
 	free (debug_buffer);
 }
@@ -666,6 +717,67 @@ static int cmd_exit(int argc, const cmd_args *argv)
 {
 	dprintf("\tEXIT SHELL\n");
 	console_abort_script();
+
+	return NO_ERROR;
+}
+
+static int cmd_setvar(int argc, const cmd_args *argv)
+{
+	dprintf("\tSet variable\n");
+
+	switch (argc) {
+	case 1:
+		printf("Syntax error, no variable specified\n");
+		break;
+	case 2:
+		dprintf("Clear/delete the variable\n");
+		if (is_var_boot_cfg(argv[1].str)) {
+			dprintf("Delete/clear boot cfg variable = %s\n", argv[1].str);
+			clear_boot_cfg_var(argv[1].str);
+		} else {
+			dprintf("Delete/clear %s variable.\n", argv[1].str);
+			clear_var(argv[1].str);
+		}
+		break;
+	default:
+		dprintf("Set the variable = %s\n", argv[1].str);
+		if (is_var_boot_cfg(argv[1].str)) {
+			dprintf("Add/update boot cfg variable = %s\n", argv[1].str);
+			update_boot_cfg_var(argc, argv);
+		} else {
+			dprintf("Add/update %s variable.\n", argv[1].str);
+			update_var(argc, argv);
+		}
+		break;
+	}
+
+	return NO_ERROR;
+}
+
+static int cmd_printvar(int argc, const cmd_args *argv)
+{
+	dprintf("\tPrint variable\n");
+	if (argc > 1) {
+		dprintf("Print value of %s variable\n", argv[1].str);
+		if (is_var_boot_cfg(argv[1].str)) {
+			dprintf("Print value of boot cfg variable = %s\n", argv[1].str);
+			print_boot_cfg_var(argv[1].str);
+		} else {
+			dprintf("Print value of %s variable.\n", argv[1].str);
+			print_var(argv[1].str);
+		}
+	} else {
+		printf("Syntax error, variable name is missing\n");
+	}
+
+	return NO_ERROR;
+}
+
+static int cmd_savevar(int argc, const cmd_args *argv)
+{
+	dprintf("\tSave variable\n");
+	/* TODO */
+	/* save all variables i.e. write current dtb contents to storage */
 
 	return NO_ERROR;
 }

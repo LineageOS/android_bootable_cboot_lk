@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -16,6 +16,7 @@
 #include <libfdt.h>
 #include <tegrabl_i2c_dev_basic.h>
 #include <platform_config.h>
+#include <tegrabl_io.h>
 
 #define ALIAS_NAME_LEN 50
 

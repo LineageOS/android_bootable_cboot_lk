@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, NVIDIA Corporation.	All Rights Reserved.
+ * Copyright (c) 2016-2019, NVIDIA Corporation.	All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -34,6 +34,9 @@
 #include <tegrabl_devicetree.h>
 #include <menu.h>
 #include <tegrabl_a_b_boot_control.h>
+#if defined(CONFIG_OS_IS_ANDROID)
+#include <tos_param.h>
+#endif
 
 #if defined(IS_T186)
 #include <device_config.h>
@@ -98,6 +101,10 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 		return err;
 	}
 
+#if defined(CONFIG_OS_IS_ANDROID)
+	tegrabl_send_tos_param();
+#endif
+
 #if defined(CONFIG_ENABLE_DISPLAY)
 	err = display_boot_logo();
 	if (err != TEGRABL_NO_ERROR)
@@ -111,9 +118,16 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	/* Update smd if a/b retry counter changed */
 	tegrabl_a_b_update_smd();
 
+	pr_info("Kernel EP: %p, DTB: %p\n", kernel_entry_point, kernel_dtb);
+
 	platform_uninit();
 
-	pr_info("Filling next stage params: ep: %p, dtb: %p\n", kernel_entry_point, kernel_dtb);
+	/* The MMU is off here. Don't call any code, such as printf or
+	 * compiler library functions, which might perform unaligned accesses.
+	 * They would raise an exception since all memory access are treated
+	 * as device accesses when the MMU is off, and device memory doesn't
+	 * support unaligned accesses.
+	 */
 	kernel_entry = (void *)kernel_entry_point;
 	kernel_entry((uint64_t)kernel_dtb, 0, 0, 0);
 
@@ -134,10 +148,10 @@ static status_t kernel_boot(void)
 	bool is_skip_menu = true;
 
 	tegrabl_profiler_record("kernel_boot entry", 0, DETAILED);
+#endif
 
 	/* Init the menu early since fastboot and verified boot both need menu */
 	menu_init();
-#endif
 
 #if defined(CONFIG_ENABLE_FASTBOOT)
 	err = check_enter_fastboot(&is_enter_fastboot);

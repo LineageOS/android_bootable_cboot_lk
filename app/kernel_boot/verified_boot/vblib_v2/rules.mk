@@ -13,14 +13,13 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_DEPS += \
-	../../common/lib/external/asn1 \
 	../../common/lib/external/mincrypt \
-	../../common/lib/external/mbedtls \
+	../../common/lib/external/libavb \
 	../common/soc/t186/pkc_ops
 
 ifneq ($(TARGET_FAMILY), t19x)
 MODULE_DEPS += \
-	../../$(TARGET_FAMILY)/common/drivers/se
+    ../../$(TARGET_FAMILY)/common/drivers/se
 endif
 
 GLOBAL_INCLUDES += \
@@ -36,6 +35,5 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/monitor_interface.S \
 	$(LOCAL_DIR)/verified_boot_ui.c \
 	$(LOCAL_DIR)/menu_data.c
-
 
 include make/module.mk

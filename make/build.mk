@@ -4,7 +4,11 @@ $(OUTBIN): $(OUTELF)
 	@echo generating image: $@
 	$(NOECHO)$(SIZE) $<
 	$(NOECHO)$(OBJCOPY) -O binary $< $@
+ifeq ($(NV_BUILD_SYSTEM_TYPE),l4t)
+	$(NOECHO)$(APPEND_VERSION) $(PROJECT) $(VERSION_MAX_LEN) $@
+else
 	$(NOECHO)$(APPEND_VERSION) $(BUILD_VERSION) $(PROJECT) $(VERSION_MAX_LEN) $@
+endif
 
 $(OUTELF).hex: $(OUTELF)
 	@echo generating hex file: $@

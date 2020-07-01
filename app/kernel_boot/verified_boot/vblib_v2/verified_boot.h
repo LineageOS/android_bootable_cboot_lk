@@ -13,15 +13,15 @@
 
 #include <boot.h>
 #include <tegrabl_bootimg.h>
-#include <mincrypt/rsa.h>
 #include <tegrabl_error.h>
+#include <libavb/libavb.h>
 
 /**
  * The verified boot states Red, Yellow and Green are arranged in increasing
  * order of level of trust for binaries verified by the bootloader
  * (Currently, boot.img and kernel-dtb)
  */
-/* macro boot state */
+/*macro boot_state*/
 typedef uint32_t boot_state_t;
 #define VERIFIED_BOOT_UNKNOWN_STATE 0
 #define VERIFIED_BOOT_RED_STATE 1
@@ -33,7 +33,6 @@ typedef uint32_t boot_state_t;
 #define SMC_TOS_RESTART_LAST  0x3C000000
 
 /* All sizes are in bytes */
-#define BOOT_IMG_SIG_BUF_SZ (4*1024)
 #define HASH_DIGEST_SIZE 32
 #define VERITY_KEY_SIZE 256
 
@@ -48,48 +47,36 @@ typedef uint32_t boot_state_t;
 struct root_of_trust {
 	uint32_t magic_header;
 	uint32_t version;
-	uint8_t dtb_pub_key[RSANUMBYTES];
-	uint8_t boot_pub_key[RSANUMBYTES];
+	uint8_t dtb_pub_key[VERITY_KEY_SIZE];
+	uint8_t boot_pub_key[VERITY_KEY_SIZE];
 	uint8_t verified_boot_state;
 };
 
 /**
  * @brief Get the boot state of the device. If the device is unlocked, boot in
- *		  orange state. Else, depending upon the integrity of boot image and
- *		  the key used to validate the boot image, boot in green, yellow or red
+ *		  orange state. Else, depending upon the integrity of vbmeta and
+ *		  the key used to validate the vbmeta, boot in green, yellow or red
  *		  state
  *
- * @param hdr boot.img header address
- * @param kernel_dtb kernel-dtb load address
  * @param bs boot state value returned
- * @param boot_pub_key The public key that the boot.img was verified with. The
- *					   caller needs to: 1) Allocate memory 2) Initialize the mem
- *					   chunk to 0
- * @param dtb_pub_key  The public key that the kernel-dtb was verified with. The
- *					   caller needs to: 1) Allocate memory 2) Initialize the mem
- *					   chunk to 0
+ * @param slot_data verify result info (output parameter)
  *
  * @return NO_ERROR if boot state is conclusively determined, else apt error
  */
-status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
-									  void *kernel_dtb,
-									  boot_state_t *bs,
-									  struct rsa_public_key *boot_pub_key,
-									  struct rsa_public_key *dtb_pub_key);
+status_t verified_boot_get_boot_state(boot_state_t *bs,
+									  AvbSlotVerifyData **slot_data);
 
 /**
  * @brief Display UI for certain states
  *
  * @param bs boot state to display the UI for
- * @param boot_pub_key Public key the boot image validated with, NULL if none
- * @param dtb_pub_key Public key the kernel-dtb validated with, NULL if none
+ * @param slot_data verify result from libavb, which contains public key used to
+ *                  veriry all vbmeta
  *
  * @return NO_ERROR on successfully getting confirmation from user to boot in
  *					the relevant state
  */
-status_t verified_boot_ui(boot_state_t bs,
-						  struct rsa_public_key *boot_pub_key,
-						  struct rsa_public_key *dtb_pub_key);
+status_t verified_boot_ui(boot_state_t bs, AvbSlotVerifyData *slot_data);
 
 /**
  * @brief SMC Call into the monitor

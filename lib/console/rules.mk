@@ -12,9 +12,12 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-GLOBAL_INCLUDES += $(LOCAL_DIR)/../../include/lib
+GLOBAL_INCLUDES += $(LOCAL_DIR) \
+	$(LOCAL_DIR)/../../include/lib \
+	../../../../common/include/lib
 
 MODULE_SRCS += \
-	$(LOCAL_DIR)/console.c
+	$(LOCAL_DIR)/console.c \
+	$(LOCAL_DIR)/var_cmd.c
 
 include make/module.mk
