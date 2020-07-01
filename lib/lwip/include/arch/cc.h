@@ -24,7 +24,6 @@
 #define __LIB_LWIP_ARCH_CC_H
 
 #include <stdint.h>
-#include <endian.h>
 #include <stdio.h>
 #include <compiler.h>
 
@@ -34,8 +33,6 @@ typedef uint32_t u32_t;
 typedef int8_t s8_t;
 typedef int16_t s16_t;
 typedef int32_t s32_t;
-
-typedef intptr_t mem_ptr_t;
 
 #define U16_F "u"
 #define S16_F "d"
@@ -47,8 +44,10 @@ typedef intptr_t mem_ptr_t;
 
 #define LWIP_CHKSUM_ALGORITHM 2
 
+#ifndef LWIP_USE_TEGRABL_DEBUG_IF
 #define LWIP_PLATFORM_DIAG(x) do {} while (0)
 #define LWIP_PLATFORM_ASSERT(x) do {} while (0)
+#endif
 
 #define PACK_STRUCT_STRUCT __PACKED
 
