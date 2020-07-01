@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -70,6 +70,7 @@
 #include <linux_load.h>
 #include <arscratch.h>
 #include <address_map_new.h>
+#include <nvboot_bct.h>
 
 #define TEGRABL_RSA_LENGTH 2048
 #define HASH_SZ 32
@@ -299,6 +300,44 @@ static tegrabl_error_t is_ratchet_update_required(void *blob, bool *is_required)
 	return TEGRABL_NO_ERROR;
 }
 
+static tegrabl_error_t brbct_writer(const void *buffer, uint64_t size, void *aux_info)
+{
+	return tegrabl_partition_write((struct tegrabl_partition *)aux_info, buffer, size);
+}
+
+static tegrabl_error_t flush_brbct_to_storage(uintptr_t new_bct, uint32_t size)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	struct tegrabl_partition part;
+	tegrabl_error_t (*writer)(const void *buffer, uint64_t size, void *aux_info);
+	uint64_t part_size = 0;
+	uint64_t bct_size = 0;
+
+	err = tegrabl_brbct_update_customer_data(new_bct, size);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	err = tegrabl_partition_open("BCT", &part);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	writer = brbct_writer;
+	bct_size = sizeof(NvBootConfigTable);
+	err = tegrabl_brbct_write_multiple(writer, (void *)new_bct, (void *)&part,
+									   part_size, bct_size, bct_size);
+	if (err != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
+
+	pr_info("BRBCT write successfully to storage\n");
+
+fail:
+	tegrabl_partition_close(&part);
+	return err;
+}
+
 tegrabl_error_t fastboot_init(void)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
@@ -330,7 +369,7 @@ tegrabl_error_t fastboot_init(void)
 		return err;
 	}
 
-	cbs.update_bct = tegrabl_brbct_update_customer_data;
+	cbs.update_bct = flush_brbct_to_storage;
 	cbs.verify_payload = verify_bl_payload;
 	cbs.get_slot_num = fastboot_a_b_get_slot_num;
 	cbs.get_slot_via_suffix = tegrabl_a_b_get_slot_via_suffix;

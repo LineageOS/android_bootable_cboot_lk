@@ -28,6 +28,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../common/lib/ipc \
 	$(LOCAL_DIR)/../../../common/drivers/fuse \
 	$(LOCAL_DIR)/../../../common/drivers/gpcdma \
+	$(LOCAL_DIR)/../../../common/drivers/vic \
 	$(LOCAL_DIR)/../../../common/soc/$(TARGET)/misc \
 	$(LOCAL_DIR)/../../../common/drivers/soc/$(TARGET)/power \
 	$(LOCAL_DIR)/../../../common/lib/mce \
@@ -55,6 +56,7 @@ MODULE_DEPS += \
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR) \
+	$(LOCAL_DIR)/../../../common/include/drivers \
 	$(LOCAL_DIR)/../../../common/include/soc/t186 \
 	$(LOCAL_DIR)/../../../../../../hwinc-t18x \
 	$(LOCAL_DIR)/../../../../../../mb1/partner-t18x/include

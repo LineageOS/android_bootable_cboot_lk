@@ -8,276 +8,292 @@
  * is strictly prohibited.
  */
 
+#include <string.h>
+#include <printf.h>
 #include <tegrabl_cpubl_params.h>
 #include <address_map_new.h>
 #include <tegrabl_gpcdma.h>
 #include <tegrabl_debug.h>
 #if defined(CONFIG_VIC_SCRUB)
-#include <vic.h>
+#include <tegrabl_vic.h>
 #endif
 #include <dram_ecc.h>
 #include <tegrabl_drf.h>
 #include <armc.h>
+#include <tegrabl_linuxboot_helper.h>
 
 #define RAM_BASE NV_ADDRESS_MAP_EMEM_BASE
 
-uint64_t Dram_Start;
-uint64_t Dram_End;
+uint64_t dram_start;
+uint64_t dram_end;
 struct carve_out_info *carveout;
 extern struct tboot_cpubl_params *boot_params;
 #if defined(CONFIG_VIC_SCRUB)
-static VicTransferConfig s_VicTransferConfig;
+static struct vic_transfer_config s_vic_transfer_config;
 #endif
-static uint32_t DramCarveouts[CARVEOUT_NUM];
-static uint32_t DramCarveoutsCount;
+static uint32_t dram_carveouts[CARVEOUT_NUM];
+static uint32_t dram_carveouts_count;
 
-/* Get DRAM size */
-static uint64_t CbGetSdramSize(void)
+/* Return the size of DRAM in MB */
+static uint64_t cb_get_dram_size(void)
 {
-	uint32_t SdramSizeMb;
+	uint32_t sdram_size;
 
-	SdramSizeMb = (NV_READ32(NV_ADDRESS_MAP_MCB_BASE + MC_EMEM_CFG_0) & 0x3FFF);
+	sdram_size = (NV_READ32(NV_ADDRESS_MAP_MCB_BASE + MC_EMEM_CFG_0) & 0x3FFF);
 
-	return (uint64_t)SdramSizeMb * 1024 * 1024;
+	return (uint64_t)sdram_size * 1024 * 1024;
 }
 
-/* compare the base addresses of crveouts */
-static int32_t compare(const uint32_t a, const uint32_t b)
-{
-	if (carveout[a].base < carveout[b].base)
-		return -1;
-	else if (carveout[a].base > carveout[b].base)
-		return 1;
-	else
-		return 0;
-}
-
-/* Sorting list of Dram Carveouts */
-static void CbDramEccSortCarveout(void)
-{
-	uint32_t val;
-	uint32_t i;
-	int32_t j;
-	uint32_t count;
-	count = CARVEOUT_NUM;
-
-	/* Sort them based on physical address */
-	if (count < 2) {
-		return;
-	}
-	for (i = 1; i < DramCarveoutsCount; i++) {
-		val = DramCarveouts[i];
-		for (j = (i - 1); (j >= 0) && (compare(val, DramCarveouts[j]) < 0);
-				j--) {
-			DramCarveouts[j+1] = DramCarveouts[j];
-		}
-		DramCarveouts[j+1] = val;
-	}
-}
-
-/* List of Dram Carveouts Required */
-static void CbDramEccSortCarveoutList(void)
+/*
+ * Seperate DRAM carveouts from SYSRAM carveouts and
+ * carveouts with 0 size
+*/
+static void cb_dram_ecc_sort_carveout_list(void)
 {
 	enum carve_out_type cotype;
-	DramCarveoutsCount = 0;
+	dram_carveouts_count = 0;
 
 	for (cotype = CARVEOUT_NVDEC; cotype < CARVEOUT_NUM; cotype++) {
 		/* excluding sysram, primary and extended carveouts */
-		if ((carveout[cotype].base < Dram_Start) ||
+		if ((carveout[cotype].base < dram_start) ||
 			(carveout[cotype].size == 0) || (cotype == 33) ||
-			(cotype == 34))
+			(cotype == 34)) {
 			continue;
+		}
 
-		DramCarveouts[DramCarveoutsCount] = (uint32_t)cotype;
-		DramCarveoutsCount++;
+		dram_carveouts[dram_carveouts_count] = (uint32_t)cotype;
+		dram_carveouts_count++;
 	}
 
-	CbDramEccSortCarveout();
+	sort(dram_carveouts, dram_carveouts_count);
 }
 
 #if defined(CONFIG_VIC_SCRUB)
-static void CbDramEccScrubAlignmentCheck(VicTransferConfig *pVicConfig)
+/*
+ * Make the block to be scrubbed size aligned to
+ * MB if size > 1MB
+ * KB if size < 1MB
+*/
+static void cb_dram_ecc_scrub_alignment_check(struct vic_transfer_config *p_vic_config)
 {
-	if (pVicConfig->Size >= SIZE_1M) {
-		if (pVicConfig->DestAddrPhy & VIC_ADDR_ALIGN_MASK1) {
+	if (p_vic_config->size >= SIZE_1M) {
+		if (p_vic_config->dest_addr_phy & VIC_ADDR_ALIGN_MASK1) {
 			/*
 			 * When the addr is not 1MB aligned, Reduce the size to be
 			 * aligned in KB, so that scrubbing for KB aligned Addr
 			 * can happen
 			*/
-			pVicConfig->Size =
-				(SIZE_1M - ((pVicConfig->DestAddrPhy + SIZE_1M) % SIZE_1M));
+			p_vic_config->size =
+				(SIZE_1M - ((p_vic_config->dest_addr_phy + SIZE_1M) % SIZE_1M));
 		} else {
-			if (pVicConfig->Size & VIC_SIZE_ALIGN_MASK1) {
+			if (p_vic_config->size & VIC_SIZE_ALIGN_MASK1) {
 				/*  Make the Size 1MB aligned */
-				pVicConfig->Size -= (pVicConfig->Size % SIZE_1M);
+				p_vic_config->size -= (p_vic_config->size % SIZE_1M);
 			}
 		}
 	}
 }
 
-static tegrabl_error_t CbDramEccVICScrubAddrRange(uint64_t Dest, uint64_t Src,
-		uint64_t ScrubSize, uint32_t ScrubBlockSize, uint32_t Type) {
+/*
+ * This function writes a defined fixed pattern into Src Address, which is
+ * later copied to any place given by Dest in DRAM as part of VIC scrub
+ * function called in the same function
+ * Input:   Dest            - Address where pattern is written in DRAM
+ *          Src             - Address where pattern is taken to write at dest
+ *          ScrubSize       - Size of the DRAM to be scrubbed starting from Dest
+ *          ScrubBlockSize  - Size of block which contains fixed pattern
+ *                              starting from Src
+ * Return:  Error
+*/
+static tegrabl_error_t cb_dram_ecc_vic_scrub_addr_range(uint64_t dest,
+		uint64_t src, uint64_t scrubsize, uint32_t scrub_block_size,
+		uint32_t type) {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	uint64_t End = (Dest + ScrubSize);
-	VicTransferConfig *pVicTransferConfig = &s_VicTransferConfig;
+	uint64_t end = (dest + scrubsize);
+	struct vic_transfer_config *p_vic_transfer_config = &s_vic_transfer_config;
 
-	memset(pVicTransferConfig, 0, sizeof(VicTransferConfig));
+	memset(p_vic_transfer_config, 0, sizeof(struct vic_transfer_config));
 
 	pr_debug("Src:0x%lx Dest:0x%lx ScrubSize:0x%lx ScrubBlockSize:0x%u\n",
-			 Src, Dest, ScrubSize, ScrubBlockSize);
+			 src, dest, scrubsize, scrub_block_size);
 
-	pVicTransferConfig->SrcAddrPhy = Src;
-	pVicTransferConfig->DestAddrPhy = Dest;
-	pVicTransferConfig->Size = ScrubSize;
+	p_vic_transfer_config->src_addr_phy = src;
+	p_vic_transfer_config->dest_addr_phy = dest;
+	p_vic_transfer_config->size = scrubsize;
 
-	if ((pVicTransferConfig->DestAddrPhy + ScrubBlockSize) > End) {
-		pVicTransferConfig->Size = (End - pVicTransferConfig->DestAddrPhy);
+	if ((p_vic_transfer_config->dest_addr_phy + scrub_block_size) > end) {
+		p_vic_transfer_config->size = (end -
+				p_vic_transfer_config->dest_addr_phy);
 	}
 
 	/* Adjust the size based on addr alginment */
-	CbDramEccScrubAlignmentCheck(&s_VicTransferConfig);
+	cb_dram_ecc_scrub_alignment_check(&s_vic_transfer_config);
 
-	while (pVicTransferConfig->DestAddrPhy < End) {
-		err = CbVicScrub(0, CB_VIC_TRANSFER, pVicTransferConfig);
-		if (err != TEGRABL_NO_ERROR)
+	while (p_vic_transfer_config->dest_addr_phy < end) {
+		err = cb_vic_scrub(0, CB_VIC_TRANSFER, p_vic_transfer_config);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("VIC: Transfer Error\n");
 			goto fail;
+		}
 
 		/*
 		 * If the single ASYNC invoking  results in multiple VIC copy
 		 * (for alginment reasons) we need to make sure ASYNC VIC copy is done
 		 * for last chunk and rest all VIC copy happens as SYNC
 		*/
-		if (((pVicTransferConfig->DestAddrPhy + pVicTransferConfig->Size)
-					>= End) && Type == CB_VIC_SCRUB_ASYNC) {
+		if (((p_vic_transfer_config->dest_addr_phy +
+					p_vic_transfer_config->size) >= end) && type ==
+					CB_VIC_SCRUB_ASYNC) {
 			break;
 		}
 
-		err = CbVicScrub(0, CB_VIC_WAIT_FOR_TRANSFER_COMPLETE,
+		err = cb_vic_scrub(0, CB_VIC_WAIT_FOR_TRANSFER_COMPLETE,
 					(void *)CB_VIC_WAIT_FOR_TRANSFER_COMPLETE);
-		if (err != TEGRABL_NO_ERROR)
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("VIC: Wait Error\n");
 			goto fail;
+		}
 
 		/*  Increment the DestAddrPhy with size of memory just got scrubbed */
-		pVicTransferConfig->DestAddrPhy += pVicTransferConfig->Size;
+		p_vic_transfer_config->dest_addr_phy += p_vic_transfer_config->size;
 
 		/*
 		 * Re-init the Size with  original ScrubBlockSize so that we can again
 		 * check for alignments and attempt maximum scrub size possible
 		*/
-		pVicTransferConfig->Size = ScrubBlockSize;
+		p_vic_transfer_config->size = scrub_block_size;
 
-		if ((pVicTransferConfig->DestAddrPhy +
-					pVicTransferConfig->Size) > End) {
-			pVicTransferConfig->Size = (End - pVicTransferConfig->DestAddrPhy);
+		if ((p_vic_transfer_config->dest_addr_phy +
+					p_vic_transfer_config->size) > end) {
+			p_vic_transfer_config->size = (end -
+					p_vic_transfer_config->dest_addr_phy);
 		}
 
 		/* Adjust the size based on addr alginment */
-		CbDramEccScrubAlignmentCheck(&s_VicTransferConfig);
+		cb_dram_ecc_scrub_alignment_check(&s_vic_transfer_config);
 	}
 
 fail:
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("%s:VIC scrub error  = %x, Dest = 0x%lx\n", __func__, err,
-				 pVicTransferConfig->DestAddrPhy);
+				 p_vic_transfer_config->dest_addr_phy);
 	}
 	return err;
 }
 #endif
 
-static tegrabl_error_t CbScrubFunction(uint64_t Dest, uint64_t Src,
-		uint64_t ScrubSize)
+/* Selects the medium of scrub VIC or GPCDMA based on defconfig enabled */
+static tegrabl_error_t cb_scrub_function(uint64_t dest, uint64_t src,
+		uint64_t scrubsize)
 {
 #if defined(CONFIG_VIC_SCRUB)
-	return CbDramEccVICScrubAddrRange(Dest, Src, ScrubSize, SCRUB_BLOCK_SIZE,
-			CB_VIC_SCRUB_SYNC);
+	return cb_dram_ecc_vic_scrub_addr_range(dest, src, scrubsize,
+			SCRUB_BLOCK_SIZE, CB_VIC_SCRUB_SYNC);
 #else
-	return tegrabl_init_scrub_dma(Dest, Src, FIXED_PATTERN, ScrubSize,
+	return tegrabl_init_scrub_dma(dest, src, FIXED_PATTERN, scrubsize,
 			DMA_PATTERN_FILL);
 #endif
 }
 
 /* Scrub Function */
-tegrabl_error_t CbDramEccScrub(void)
+tegrabl_error_t cb_dram_ecc_scrub(void)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	uint64_t ScrubBase;
-	uint64_t ScrubSize = 0;
+	uint64_t scrub_base;
+	uint64_t scrub_size = 0;
 	uint32_t count = 0;
-	uint64_t Src = 0;
+	uint64_t src = 0;
+	uint64_t total_scrub_size = 0;
 
 	pr_info("Dram Scrub in progress\n");
-	Dram_Start = RAM_BASE;
-	Dram_End = Dram_Start + CbGetSdramSize();
+	dram_start = RAM_BASE;
+	dram_end = dram_start + cb_get_dram_size();
 
 	carveout = boot_params->global_data.carveout;
 #if defined(CONFIG_VIC_SCRUB)
 	pr_debug("VIC Scrub Enabled\n");
 	/* Initialize the VIC Engine */
-	err = CbVicInit();
-	if (err != TEGRABL_NO_ERROR)
+	err = cb_vic_init();
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("VIC: Init Error\n");
 		goto fail;
+	}
 
-	Src = carveout[CARVEOUT_CPUBL].base + carveout[CARVEOUT_CPUBL].size -
+	src = carveout[CARVEOUT_CPUBL].base + carveout[CARVEOUT_CPUBL].size -
 				SCRUB_BLOCK_SIZE;
-	if (Src == 0) {
-		pr_error("Memory allocation error\n");
+	if (src == 0) {
+		pr_error("VIC: Memory allocation error\n");
 		return TEGRABL_NO_ERROR;
 	}
 
 	/* Write fixed pattern to the above memory in CARVEOUT_CPUBL */
-	err = tegrabl_init_scrub_dma(Src, 0, FIXED_PATTERN,
+	err = tegrabl_init_scrub_dma(src, 0, FIXED_PATTERN,
 			SCRUB_BLOCK_SIZE, DMA_PATTERN_FILL);
-	if (err != TEGRABL_NO_ERROR)
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("VIC: Write to scrub block failed\n");
 		goto fail;
+	}
 #else
 	pr_debug("VIC Scrub Disabled\n");
 #endif
 	/* Sort before scrub */
-	CbDramEccSortCarveoutList();
+	cb_dram_ecc_sort_carveout_list();
 	pr_debug("Carveouts Sorted\n");
 
-	ScrubBase = Dram_Start;
-	while (count < DramCarveoutsCount) {
-		if (ScrubBase == carveout[DramCarveouts[count]].base) {
-			ScrubBase += carveout[DramCarveouts[count]].size;
+	scrub_base = dram_start;
+	while (count < dram_carveouts_count) {
+		if (scrub_base == carveout[dram_carveouts[count]].base) {
+			scrub_base += carveout[dram_carveouts[count]].size;
 			count++;
 			continue; /* no need to scrub carveouts */
 		}
 
-		ScrubSize = carveout[DramCarveouts[count]].base - ScrubBase;
+		scrub_size = carveout[dram_carveouts[count]].base - scrub_base;
 
 		/*  Max Scrubsize VIC and GPCDMA can scrub is 1GB */
-		if (ScrubSize > 1073741824)
-			ScrubSize = 1073741824;
+		if (scrub_size > 1073741824) {
+			scrub_size = 1073741824;
+		}
 
-		pr_debug("ScrubBase: %lx ScrubSize: %lx ScrubEnd: %lx\n", ScrubBase,
-				 ScrubSize, ScrubBase+ScrubSize);
-		err = CbScrubFunction(ScrubBase, Src, ScrubSize);
-		if (err != TEGRABL_NO_ERROR)
+		pr_debug("ScrubBase: %lx ScrubSize: %lx ScrubEnd: %lx\n", scrub_base,
+				 scrub_size, scrub_base + scrub_size);
+		err = cb_scrub_function(scrub_base, src, scrub_size);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("Scrub failed, Scrub_Base: %lx Scrub_End: %lx", scrub_base,
+					scrub_base + scrub_size);
 			goto fail;
+		}
 
-		ScrubBase += ScrubSize;
+		scrub_base += scrub_size;
+		total_scrub_size += scrub_size;
 	}
 
 	/* for the memory from end of last carveout to end of dram */
-	if (ScrubBase < Dram_End) {
-		err = CbScrubFunction(ScrubBase, Src, ScrubSize);
-		if (err != TEGRABL_NO_ERROR)
+	if (scrub_base < dram_end) {
+		scrub_size = dram_end - scrub_base;
+		err = cb_scrub_function(scrub_base, src, scrub_size);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("Scrub Failed at end of dram\n");
 			goto fail;
+		}
+		total_scrub_size += scrub_size;
 	}
 
+	pr_debug("Total size Scrubbed 0x%"PRIx64"\n", total_scrub_size);
 #if defined(CONFIG_VIC_SCRUB)
 	/*  Power off the VIC FC */
-	err = CbVicExit();
-	if (err != TEGRABL_NO_ERROR)
+	err = cb_vic_exit();
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("VIC: Exit Error\n");
 		goto fail;
+	}
 #endif
-	pr_info("DRAM Scrub Successfull\n");
+	pr_info("DRAM Scrub Successful\n");
 
 fail:
-	if (err != TEGRABL_NO_ERROR)
+	if (err != TEGRABL_NO_ERROR) {
 		pr_error("%s:DRAM ECC scrub failed, error: %u", __func__, err);
+	}
 	return err;
 }
 
