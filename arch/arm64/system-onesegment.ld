@@ -1,3 +1,5 @@
+
+
 OUTPUT_FORMAT("elf64-littleaarch64", "elf64-bigaarch64", "elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
 
@@ -6,8 +8,11 @@ SECTIONS
 {
     . = %MEMBASE%;
 
+	cboot_start = .;
+
     /* text/read-only data */
     .text : {
+/*        KEEP(*(.cbootheader)) */
         KEEP(*(.text.boot))
         KEEP(*(.text.boot.vectab))
         *(.text* .sram.text.glue_7* .gnu.linkonce.t.*)
@@ -77,6 +82,12 @@ INCLUDE "arch/shared_data_sections.ld"
     .dynamic : { *(.dynamic) }
 
     __data_end = .;
+
+    .version : ALIGN(8) {
+        __version_start = .;
+        . += 64;
+        __version_end = .;
+    }
 
     /* unintialized data (in same segment as writable data) */
     .bss : ALIGN(8) {

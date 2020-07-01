@@ -36,6 +36,7 @@
 /* trace routines that work if LOCAL_TRACE is set */
 #define LTRACE_ENTRY do { if (LOCAL_TRACE) { TRACE_ENTRY; } } while (0)
 #define LTRACE_EXIT do { if (LOCAL_TRACE) { TRACE_EXIT; } } while (0)
+#define LTRACE_RET(ret) do { if (LOCAL_TRACE) { TRACE_EXIT; } return (ret);} while (0)
 #define LTRACE do { if (LOCAL_TRACE) { TRACE; } } while (0)
 #define LTRACEF(x...) do { if (LOCAL_TRACE) { TRACEF(x); } } while (0)
 

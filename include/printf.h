@@ -26,10 +26,24 @@
 #include <stdarg.h>
 #include <compiler.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 __BEGIN_CDECLS
 
 #if !DISABLE_DEBUG_OUTPUT
+
+#ifndef PRIx64
+#if __SIZEOF_LONG__ == 8
+#define PRIx64	"lx"
+#define PRId64	"ld"
+#define PRIu64	"lu"
+#else
+#define PRIx64	"llx"
+#define PRId64	"lld"
+#define PRIu64	"llu"
+#endif
+#endif /* PRIx64 */
+
 #define printf(x...) _printf(x)
 #else
 static inline int __PRINTFLIKE(1, 2) printf(const char *fmt, ...) { return 0; }

@@ -57,6 +57,7 @@ static inline bool arch_ints_disabled(void)
 
 static inline int atomic_add(volatile int *ptr, int val)
 {
+#if WITH_MMU
 #if USE_GCC_ATOMICS
     return __atomic_fetch_add(ptr, val, __ATOMIC_RELAXED);
 #else
@@ -77,10 +78,16 @@ static inline int atomic_add(volatile int *ptr, int val)
 
     return old;
 #endif
+#else
+	int old = *ptr;
+	*ptr += val;
+	return old;
+#endif
 }
 
 static inline int atomic_or(volatile int *ptr, int val)
 {
+#if WITH_MMU
 #if USE_GCC_ATOMICS
     return __atomic_fetch_or(ptr, val, __ATOMIC_RELAXED);
 #else
@@ -101,10 +108,16 @@ static inline int atomic_or(volatile int *ptr, int val)
 
     return old;
 #endif
+#else
+	int old = *ptr;
+	*ptr |= val;
+	return old;
+#endif
 }
 
 static inline int atomic_and(volatile int *ptr, int val)
 {
+#if WITH_MMU
 #if USE_GCC_ATOMICS
     return __atomic_fetch_and(ptr, val, __ATOMIC_RELAXED);
 #else
@@ -125,10 +138,16 @@ static inline int atomic_and(volatile int *ptr, int val)
 
     return old;
 #endif
+#else
+	int old = *ptr;
+	*ptr &= val;
+	return old;
+#endif
 }
 
 static inline int atomic_swap(volatile int *ptr, int val)
 {
+#if WITH_MMU
 #if USE_GCC_ATOMICS
     return __atomic_exchange_n(ptr, val, __ATOMIC_RELAXED);
 #else
@@ -147,13 +166,19 @@ static inline int atomic_swap(volatile int *ptr, int val)
 
     return old;
 #endif
+#else
+	int old = *ptr;
+	*ptr = val;
+	return old;
+#endif
 }
 
 static inline int atomic_cmpxchg(volatile int *ptr, int oldval, int newval)
 {
     int old;
-    int test;
 
+#if WITH_MMU
+    int test;
     do {
         __asm__ volatile(
             "ldrex  %[old], [%[ptr]]\n"
@@ -171,6 +196,11 @@ static inline int atomic_cmpxchg(volatile int *ptr, int oldval, int newval)
             : "cc");
 
     } while (test != 0);
+#else
+	old = *ptr;
+	if (old == oldval)
+		*ptr = newval;
+#endif
 
     return old;
 }
@@ -194,6 +224,11 @@ static inline uint32_t arch_cycle_count(void)
 //#warning no arch_cycle_count implementation
     return 0;
 #endif
+}
+
+static inline void arch_memory_barrier(void)
+{
+	__asm__ volatile("dmb sy" : : : "memory");
 }
 
 #endif // ASSEMBLY

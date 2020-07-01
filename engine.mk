@@ -1,3 +1,4 @@
+
 LOCAL_MAKEFILE:=$(MAKEFILE_LIST)
 
 ifeq ($(MAKECMDGOALS),spotless)
@@ -41,13 +42,29 @@ BUILDROOT ?= .
 BUILDDIR := $(BUILDROOT)/build-$(PROJECT)
 OUTBIN := $(BUILDDIR)/lk.bin
 OUTELF := $(BUILDDIR)/lk.elf
-CONFIGHEADER := $(BUILDDIR)/config.h
+CONFIGHEADER := $(BUILDDIR)/build_config.h
+APPEND_VERSION := $(LKROOT)/scripts/add_version_info.py
 
 GLOBAL_INCLUDES := $(BUILDDIR) $(LKROOT)/include $(addsuffix /include,$(LKINC))
 GLOBAL_OPTFLAGS ?= -Os
 GLOBAL_COMPILEFLAGS := -g -fno-builtin -finline -W -Wall -Wno-multichar -Wno-unused-parameter -Wno-unused-function -include $(CONFIGHEADER)
 GLOBAL_CFLAGS := --std=gnu99 -Werror-implicit-function-declaration -Wstrict-prototypes
-#GLOBAL_CFLAGS += -Werror
+GLOBAL_CFLAGS += -Werror=strict-prototypes -Werror=unused-label -Werror=int-to-pointer-cast -Werror=address
+GLOBAL_CFLAGS += -Werror=array-bounds -Werror=char-subscripts -Werror=enum-compare
+GLOBAL_CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration -Werror=comment
+GLOBAL_CFLAGS += -Werror=main -Werror=missing-braces -Werror=nonnull -Werror=reorder -Werror=return-type
+GLOBAL_CFLAGS += -Werror=sequence-point -Werror=switch -Werror=trigraphs -Werror=unknown-pragmas
+GLOBAL_CFLAGS += -Werror=volatile-register-var -Werror=unused-variable -Werror=unused-value -Werror=empty-body
+GLOBAL_CFLAGS += -Werror=type-limits -Werror=format-extra-args -Werror=unused-but-set-variable -Werror=overflow
+GLOBAL_CFLAGS += -Werror=uninitialized -Werror=parentheses
+GLOBAL_CFLAGS += -Wextra
+
+# Treat all compilation warnings as errors
+GLOBAL_CFLAGS += -Werror
+
+# TEMPORARY until dislay code static initializer issues are dealt with
+GLOBAL_CFLAGS += -Wno-missing-field-initializers
+
 GLOBAL_CPPFLAGS := -fno-exceptions -fno-rtti -fno-threadsafe-statics
 #GLOBAL_CPPFLAGS += -Weffc++
 GLOBAL_ASMFLAGS := -DASSEMBLY
@@ -56,6 +73,7 @@ GLOBAL_LDFLAGS :=
 GLOBAL_COMPILEFLAGS += -ffunction-sections -fdata-sections
 GLOBAL_LDFLAGS += --gc-sections
 GLOBAL_LDFLAGS += -L $(LKROOT)
+GLOBAL_LDFLAGS += -Map=$(OUTELF).map
 
 # top level rule
 all:: $(OUTBIN) $(OUTELF).lst $(OUTELF).debug.lst $(OUTELF).sym $(OUTELF).sym.sorted $(OUTELF).size $(OUTELF).hex
@@ -208,7 +226,9 @@ include make/build.mk
 $(ALLOBJS): $(GLOBAL_SRCDEPS)
 
 clean: $(EXTRA_CLEANDEPS)
-	rm -f $(ALLOBJS) $(DEPS) $(GENERATED) $(OUTBIN) $(OUTELF) $(OUTELF).lst $(OUTELF).debug.lst $(OUTELF).sym $(OUTELF).sym.sorted $(OUTELF).size $(OUTELF).hex
+	rm -f $(ALLOBJS) $(DEPS) $(GENERATED) $(OUTBIN) $(OUTELF) $(OUTELF).lst \
+		$(OUTELF).debug.lst $(OUTELF).sym $(OUTELF).sym.sorted $(OUTELF).size \
+		$(OUTELF).hex $(OUTELF).map
 
 install: all
 	scp $(OUTBIN) 192.168.0.4:/tftproot

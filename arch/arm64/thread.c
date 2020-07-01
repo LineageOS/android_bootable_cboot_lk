@@ -31,25 +31,35 @@
 #define LOCAL_TRACE 0
 
 struct context_switch_frame {
-    vaddr_t lr;
-    vaddr_t r18;
-    vaddr_t r19;
-    vaddr_t r20;
-    vaddr_t r21;
-    vaddr_t r22;
-    vaddr_t r23;
-    vaddr_t r24;
-    vaddr_t r25;
-    vaddr_t r26;
-    vaddr_t r27;
-    vaddr_t r28;
-    vaddr_t r29;
+	vaddr_t lr;
+	/* callee-saved GPRs : r18-r29 */
+	vaddr_t r18;
+	vaddr_t r19;
+	vaddr_t r20;
+	vaddr_t r21;
+	vaddr_t r22;
+	vaddr_t r23;
+	vaddr_t r24;
+	vaddr_t r25;
+	vaddr_t r26;
+	vaddr_t r27;
+	vaddr_t r28;
+	vaddr_t r29;
+	/* callee-saved FP registers : d8-d15 */
+	vaddr_t d8;
+	vaddr_t d9;
+	vaddr_t d10;
+	vaddr_t d11;
+	vaddr_t d12;
+	vaddr_t d13;
+	vaddr_t d14;
+	vaddr_t d15;
 };
 
 extern void arm64_context_switch(addr_t *old_sp, addr_t new_sp);
 
-static void initial_thread_func(void) __NO_RETURN;
-static void initial_thread_func(void)
+void initial_thread_func(void) __NO_RETURN;
+void initial_thread_func(void)
 {
     int ret;
 

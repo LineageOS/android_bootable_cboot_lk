@@ -1,10 +1,23 @@
+#
+# Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
 GLOBAL_DEFINES += \
 	ARM64_CPU_$(ARM_CPU)=1 \
-	ARM_ISA_ARMV8=1
+	ARM_ISA_ARMV8=1 \
+	WITH_MMU=1 \
+	ARM64_WITH_EL2=1 \
+	ARM_WITH_CACHE=1
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR)/include
@@ -16,14 +29,13 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/exceptions_c.c \
 	$(LOCAL_DIR)/thread.c \
 	$(LOCAL_DIR)/start.S \
-
-#	$(LOCAL_DIR)/arm/start.S \
-	$(LOCAL_DIR)/arm/cache-ops.S \
-	$(LOCAL_DIR)/arm/cache.c \
-	$(LOCAL_DIR)/arm/ops.S \
-	$(LOCAL_DIR)/arm/faults.c \
-	$(LOCAL_DIR)/arm/mmu.c \
-	$(LOCAL_DIR)/arm/dcc.S
+	$(LOCAL_DIR)/header.S \
+	$(LOCAL_DIR)/cpuinfo.c \
+	$(LOCAL_DIR)/mmu.c \
+	$(LOCAL_DIR)/stacktrace.c \
+	$(LOCAL_DIR)/cache-ops.S \
+	$(LOCAL_DIR)/dmamap.c \
+	$(LOCAL_DIR)/../../../nvtboot/cpu/soc/t186/tz_init.c
 
 GLOBAL_DEFINES += \
 	ARCH_DEFAULT_STACK_SIZE=8192

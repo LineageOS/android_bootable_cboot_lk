@@ -1,7 +1,10 @@
+include $(LKROOT)/build/version.mk
+
 $(OUTBIN): $(OUTELF)
 	@echo generating image: $@
 	$(NOECHO)$(SIZE) $<
 	$(NOECHO)$(OBJCOPY) -O binary $< $@
+	$(NOECHO)$(APPEND_VERSION) $(BUILD_VERSION) $(PROJECT) $(VERSION_MAX_LEN) $@
 
 $(OUTELF).hex: $(OUTELF)
 	@echo generating hex file: $@

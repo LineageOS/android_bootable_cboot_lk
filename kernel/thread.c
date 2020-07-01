@@ -1,4 +1,12 @@
 /*
+ * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * NVIDIA CORPORATION and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA CORPORATION is strictly prohibited
+ *
  * Copyright (c) 2008-2009 Travis Geiselbrecht
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -299,12 +307,13 @@ status_t thread_detach(thread_t *t)
 
 	enter_critical_section();
 
-	/* if anyone is blocked on this thread, wake them up with a specific return code */
-	wait_queue_wake_all(&current_thread->retcode_wait_queue, false, ERR_THREAD_DETACHED);
+	/* if another thread is blocked inside thread_join() on this thread,
+	 * wake them up with a specific return code */
+	wait_queue_wake_all(&t->retcode_wait_queue, false, ERR_THREAD_DETACHED);
 
 	/* if it's already dead, then just do what join would have and exit */
 	if (t->state == THREAD_DEATH) {
-		t->flags &= ~THREAD_FLAG_DETACHED; /* makes susre thread_join continues */
+		t->flags &= ~THREAD_FLAG_DETACHED; /* makes sure thread_join continues */
 		exit_critical_section();
 		return thread_join(t, NULL, 0);
 	} else {
@@ -346,10 +355,10 @@ void thread_exit(int retcode)
 
 		/* free its stack and the thread structure itself */
 		if (current_thread->flags & THREAD_FLAG_FREE_STACK && current_thread->stack)
-			heap_delayed_free(current_thread->stack);
+			free(current_thread->stack);
 
 		if (current_thread->flags & THREAD_FLAG_FREE_STRUCT)
-			heap_delayed_free(current_thread);
+			free(current_thread);
 	} else {
 		/* signal if anyone is waiting */
 		wait_queue_wake_all(&current_thread->retcode_wait_queue, false, 0);

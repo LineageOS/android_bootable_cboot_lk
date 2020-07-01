@@ -25,24 +25,40 @@
 #include <arch/ops.h>
 #include <arch/arm64.h>
 #include <platform.h>
+#include <arch/mmu.h>
 
 extern int _end_of_ram;
 void *_heap_end = &_end_of_ram;
 
+void print_cpuid(void);
+
 void arch_early_init(void)
 {
     /* set the vector base */
-    ARM64_WRITE_SYSREG(VBAR_EL1, (uint64_t)&arm64_exception_base);
+    ARM64_WRITE_TARGET_SYSREG(VBAR_ELx, (uint64_t)&arm64_exception_base);
 
-    /* switch to EL1 */
+    /* switch from EL3 */
     unsigned int current_el = ARM64_READ_SYSREG(CURRENTEL) >> 2;
+#if ARM64_WITH_EL2
+    if (current_el > 2) {
+        arm64_el3_to_el2();
+    }
+#else
     if (current_el > 1) {
         arm64_el3_to_el1();
     }
+#endif
+
+#if WITH_MMU
+	arm64_mmu_init();
+
+	platform_init_mmu_mappings();
+#endif
 }
 
 void arch_init(void)
 {
+	print_cpuid();
 }
 
 void arch_quiesce(void)

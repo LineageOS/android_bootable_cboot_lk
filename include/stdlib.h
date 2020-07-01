@@ -20,6 +20,9 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ */
 #ifndef __STDLIB_H
 #define __STDLIB_H
 
@@ -39,8 +42,10 @@ unsigned long long atoull(const char *num);
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-#define ROUNDUP(a, b) (((a) + ((b)-1)) & ~((b)-1))
-#define ROUNDDOWN(a, b) ((a) & ~((b)-1))
+#define ROUNDUP(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
+#define ROUNDDOWN(a, b) ((a) & ~((b) - 1))
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /* allocate a buffer on the stack aligned and padded to the cpu's cache line size */
 #define STACKBUF_DMA_ALIGN(var, size) \

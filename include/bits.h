@@ -20,6 +20,9 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ */
 #ifndef __BITS_H
 #define __BITS_H
 
@@ -37,6 +40,9 @@
 #define BITMAP_NUM_WORDS(x) (((x) / BITMAP_BITS_PER_WORD) + 1)
 #define BITMAP_WORD(x) ((x) / BITMAP_BITS_PER_WORD)
 #define BITMAP_BIT_IN_WORD(x) ((x) & (BITMAP_BITS_PER_WORD - 1))
+
+#define BITS_IN_BYTE	8
+#define BIT_SET_MASK(bit) (1 << bit)
 
 static inline int bitmap_set(unsigned long *bitmap, int bit)
 {

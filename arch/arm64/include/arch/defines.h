@@ -22,8 +22,7 @@
  */
 #pragma once
 
-/* arm specific stuff */
 #define PAGE_SIZE 4096
 
-#define CACHE_LINE 32
+#define CACHE_LINE 64
 

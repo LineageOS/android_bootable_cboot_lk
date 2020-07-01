@@ -20,6 +20,16 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * NVIDIA CORPORATION and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA CORPORATION is strictly prohibited
+ */
+
 #ifndef __MALLOC_H
 #define __MALLOC_H
 
@@ -35,6 +45,9 @@ void *calloc(size_t count, size_t size) __MALLOC;
 void *realloc(void *ptr, size_t size) __MALLOC;
 void free(void *ptr);
 
+void *malloc_uncached(size_t size, size_t *asize) __MALLOC;
+void *memalign_uncached(size_t boundary, size_t size, size_t *asize) __MALLOC;
+void free_uncached(void *ptr, size_t asize);
 __END_CDECLS
 
 #endif
