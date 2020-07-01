@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017, NVIDIA Corporation.	All Rights Reserved.
+ * Copyright (c) 2015-2018, NVIDIA Corporation.	All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -10,8 +10,8 @@
 
 #define MODULE TEGRABL_ERR_VERIFIED_BOOT
 
+#include <tegrabl_error.h>
 #include <verified_boot.h>
-#include <verified_boot_ui.h>
 #include <signature_parser.h>
 #include <mincrypt/rsa.h>
 #include <mbedtls/bignum.h>
@@ -21,20 +21,24 @@
 #include <malloc.h>
 #include <sys/types.h>
 #include <mincrypt/sha256.h>
-#include <tegrabl_linuxboot_helper.h>
 #include <tegrabl_bootimg.h>
-#include <tegrabl_se.h>
-#include <tegrabl_error.h>
 #include <arse0.h>
 #include <string.h>
 #include <tegrabl_debug.h>
-#include <tegrabl_odmdata_lib.h>
+#include <tegrabl_odmdata_soc.h>
 #include <tegrabl_pkc_ops.h>
 #include <tegrabl_wdt.h>
 #include <tegrabl_cache.h>
 #include <tegrabl_fuse.h>
 #include <libfdt.h>
 #include <nvboot_crypto_param.h>
+
+#if defined(IS_T186)
+#include <verified_boot_ui.h>
+#include <tegrabl_se.h>
+#else
+#include <tegrabl_crypto_se.h>
+#endif
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
@@ -48,11 +52,13 @@ static status_t hash_payload_authattr(uintptr_t payload, size_t payload_size,
 									  uintptr_t authaddr, size_t auth_size,
 									  uint8_t *output)
 {
-	struct se_sha_input_params sha_input;
-	struct se_sha_context sha_context;
 	tegrabl_error_t ret = TEGRABL_NO_ERROR;
 	uint8_t *buf_payload_auth = NULL;
 	size_t size;
+#if defined(IS_T186)
+	struct se_sha_input_params sha_input;
+	struct se_sha_context sha_context;
+#endif
 
 	if (!payload || !authaddr || !output)
 		return ERR_INVALID_ARGS;
@@ -68,10 +74,11 @@ static status_t hash_payload_authattr(uintptr_t payload, size_t payload_size,
 	memcpy((void *)(buf_payload_auth + payload_size), (const void *)authaddr,
 		   auth_size);
 
+#if defined(IS_T186)
 	/* TODO:
 	 * Calculate the hash in one go when SE bug is fixed
 	 * Tracked in Bug 200199108
-	 * */
+	 */
 	sha_context.input_size = (uint32_t)size;
 	sha_context.hash_algorithm = SE_SHAMODE_SHA256;
 	sha_input.block_addr = (uintptr_t)buf_payload_auth;
@@ -80,7 +87,9 @@ static status_t hash_payload_authattr(uintptr_t payload, size_t payload_size,
 	sha_input.hash_addr = (uintptr_t)output;
 
 	ret = tegrabl_se_sha_process_payload(&sha_input, &sha_context);
-
+#else
+	ret = tegrabl_crypto_compute_sha2(buf_payload_auth, size, output);
+#endif
 	if (ret != TEGRABL_NO_ERROR)
 		return ERR_GENERIC;
 
@@ -247,10 +256,15 @@ static tegrabl_error_t validate_pkc_modulus_hash(uint8_t *bct_key_mod)
 
 	/* PKC hash fuse value is sha256sum of pcp */
 	memset(&pcp, 0, sizeof(NvBootPublicCryptoParameters));
+#if defined(IS_T186)
 	memcpy(&pcp.RsaPublicParams.RsaPublicKey.RsaKey2048NvU8.Modulus,
 		   bct_key_mod,
 		   sizeof(pcp.RsaPublicParams.RsaPublicKey.RsaKey2048NvU8.Modulus));
-
+#else
+	memcpy(&pcp.RsaPublicParams.Modulus,
+		   bct_key_mod,
+		   sizeof(pcp.RsaPublicParams.Modulus));
+#endif
 	sha256_hash(&pcp, sizeof(NvBootPublicCryptoParameters), key_hash);
 
 	ret = tegrabl_fuse_read(FUSE_PKC_PUBKEY_HASH, (uint32_t *)fuse_hash,
@@ -272,7 +286,7 @@ done:
 }
 
 static status_t verify_image(uintptr_t image_addr, size_t image_size,
-							 uintptr_t sig_section, enum boot_state *bs,
+							 uintptr_t sig_section, boot_state_t *bs,
 							 struct rsa_public_key *out_pub_key)
 {
 	status_t ret = NO_ERROR;
@@ -351,15 +365,15 @@ out:
 }
 
 static bool s_boot_image_verified;
-static enum boot_state s_boot_state; /* Possible values: red/yellow/green */
+static boot_state_t s_boot_state; /* Possible values: red/yellow/green */
 
 status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
-									  void *kernel_dtb, enum boot_state *bs,
+									  void *kernel_dtb, boot_state_t *bs,
 									  struct rsa_public_key *boot_pub_key,
 									  struct rsa_public_key *dtb_pub_key)
 {
 	status_t ret = NO_ERROR;
-	enum boot_state bs_dtb, bs_boot;
+	boot_state_t bs_dtb, bs_boot;
 	size_t dtb_size;
 	size_t boot_size;
 	uint8_t *dtb_sig_section;  /* Pointer to signature section of kernel-dtb */
@@ -372,6 +386,10 @@ status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
 		*bs = s_boot_state;
 		return NO_ERROR;
 	} else {
+#ifndef IS_T186
+		tegrabl_crypto_early_init();
+#endif
+
 		/* Get boot.img boot state */
 		/* Size of boot image including signature section */
 		boot_size = total_boot_pages(hdr) * hdr->pagesize;
@@ -402,7 +420,8 @@ status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
 	}
 }
 
-status_t verified_boot_ui(enum boot_state bs,
+#if defined(IS_T186)
+status_t verified_boot_ui(boot_state_t bs,
 						  struct rsa_public_key *boot_pub_key,
 						  struct rsa_public_key *dtb_pub_key)
 {
@@ -417,17 +436,20 @@ status_t verified_boot_ui(enum boot_state bs,
 		return ERR_INVALID_ARGS;
 	}
 }
+#endif
 
 tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
-							void *kernel_dtb)
+							void *kernel_dtb, void *kernel_dtbo)
 {
 	status_t ret = NO_ERROR;
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	enum boot_state bs;
-	struct root_of_trust r_o_t_params;
+	boot_state_t bs;
 	struct rsa_public_key *vb_pub_key_boot = NULL;
 	struct rsa_public_key *vb_pub_key_dtb = NULL;
-	const char *bs_str = NULL;
+	struct root_of_trust r_o_t_params;
+
+	/* DTBO is not enabled in verified boot 1.0 in Android N */
+	TEGRABL_UNUSED(kernel_dtbo);
 
 	vb_pub_key_boot = calloc(1, sizeof(struct rsa_public_key));
 	if (!vb_pub_key_boot) {
@@ -461,7 +483,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 
 	/* Flush these bytes so that the monitor can access them */
 	tegrabl_arch_clean_dcache_range((addr_t)&r_o_t_params,
-						   sizeof(struct root_of_trust));
+									sizeof(struct root_of_trust));
 
 	/* Passing the address directly works because VMEM=PMEM in Cboot.
 	 * If this assumption changes, we need to explicitly convert the
@@ -482,20 +504,16 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		goto exit;
 	}
 
-	bs_str = (bs == VERIFIED_BOOT_RED_STATE) ? "red" :
-			 (bs == VERIFIED_BOOT_YELLOW_STATE) ? "yellow" :
-			 (bs == VERIFIED_BOOT_GREEN_STATE) ? "green" :
-			 (bs == VERIFIED_BOOT_ORANGE_STATE) ? "orange" : "unknown";
+	pr_info("Verified boot state = %s\n",
+			bs == VERIFIED_BOOT_RED_STATE ? "Red" :
+			bs == VERIFIED_BOOT_YELLOW_STATE ? "Yellow" :
+			bs == VERIFIED_BOOT_GREEN_STATE ? "Green" :
+			bs == VERIFIED_BOOT_ORANGE_STATE ? "Orange" : "Unknown");
 
-	pr_info("Verified boot state = %s\n", bs_str);
-
-	err = tegrabl_linuxboot_set_vbstate(bs_str);
-	if (err != TEGRABL_NO_ERROR) {
-		goto exit;
-	}
-
+#if defined(IS_T186)
 	if (bs != VERIFIED_BOOT_GREEN_STATE)
 		verified_boot_ui(bs, vb_pub_key_boot, vb_pub_key_dtb);
+#endif
 
 exit:
 	if (vb_pub_key_dtb)

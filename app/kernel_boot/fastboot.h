@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -42,20 +42,20 @@
 #include <tegrabl_error.h>
 
 /* USB state returned during notify call */
-enum fastboot_usb_state {
+typedef enum fastboot_usb_state {
 	/* Dev not configured */
 	FASTBOOT_USB_STATE_NOT_CONFIGURED = 0,
 	/* Dev enumeration done and configured */
 	FASTBOOT_USB_STATE_CONFIGURED = 1,
 	/* Cable is not connected */
 	FASTBOOT_USB_STATE_CABLE_NOT_CONNECTED = 2,
-};
+} fastboot_usb_state_t;
 
-enum fastboot_thread_status {
+typedef enum fastboot_thread_status {
 	RUNNING,
 	PAUSED,
 	TERMINATED,
-};
+} fastboot_thread_status_t;
 
 /**
  * @brief initialize fastboot
@@ -69,7 +69,7 @@ tegrabl_error_t fastboot_init(void);
  *
  * @return fastboot thread status
  */
-enum fastboot_thread_status is_fastboot_running(void);
+fastboot_thread_status_t is_fastboot_running(void);
 
 /**
  * @brief check whether to enter fastboot or not

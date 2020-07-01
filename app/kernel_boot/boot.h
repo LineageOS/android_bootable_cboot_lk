@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, NVIDIA Corporation.  All Rights Reserved.
+ * Copyright (c) 2014-2018, NVIDIA Corporation.  All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -8,8 +8,8 @@
  * is strictly prohibited.
  */
 
-#ifndef __ANDROID_BOOT_H
-#define __ANDROID_BOOT_H
+#ifndef __KERNEL_BOOT_H
+#define __KERNEL_BOOT_H
 
 #include <sys/types.h>
 #include <tegrabl_error.h>
@@ -54,42 +54,42 @@ typedef struct {
 	uint32_t id[8];
 } android_boot_img;
 
-typedef enum {
+/* macro debug console port */
 	/* Debug console is undefined. */
-	DEBUG_CONSOLE_UNDEFINED,
+#define DEBUG_CONSOLE_UNDEFINED 0
 
 	/* No debug console is to be used and use hsport for debug UART */
-	DEBUG_CONSOLE_NONE,
+#define DEBUG_CONSOLE_NONE 1
 
 	/* ARM Debug Communication Channel (Dcc) port */
-	DEBUG_CONSOLE_DCC,
+#define DEBUG_CONSOLE_DCC 2
 
 	/* UARTs A to E */
-	DEBUG_CONSOLE_UARTA,
-	DEBUG_CONSOLE_UARTB,
-	DEBUG_CONSOLE_UARTC,
-	DEBUG_CONSOLE_UARTD,
-	DEBUG_CONSOLE_UARTE,
+#define DEBUG_CONSOLE_UARTA 3
+#define DEBUG_CONSOLE_UARTB 4
+#define DEBUG_CONSOLE_UARTC 5
+#define DEBUG_CONSOLE_UARTD 6
+#define DEBUG_CONSOLE_UARTE 7
 
 	/* uSD to UARTA adapter is to be used for debug console */
-	DEBUG_CONSOLE_UARTSD,
+#define DEBUG_CONSOLE_UARTSD 8
 
 	/* No debug console is to be used and use lsport for debug */
-	DEBUG_CONSOLE_AUTOMATION = 0x10,
+#define DEBUG_CONSOLE_AUTOMATION 0x10
 
-	DEBUG_CONSOLE_NUM,
-} debug_console_port;
+#define DEBUG_CONSOLE_NUM 0x11
+typedef uint32_t debug_console_port;
 
-typedef enum {
-	ANDROID_KERNEL,  /* boot.img */
-	RECOVERY_KERNEL, /* recovery.img */
-	FASTBOOT_KERNEL, /* boot.img loaded with fastboot boot command */
-} kernel_type;
+/* macro kernel type */
+#define ANDROID_KERNEL 0  /* boot.img */
+#define RECOVERY_KERNEL 1 /* recovery.img */
+#define FASTBOOT_KERNEL 2 /* boot.img loaded with fastboot boot command */
+typedef uint32_t kernel_type;
 
-typedef enum {
-	android_boot_mode_regular,
-	android_boot_mode_charger,
-} android_boot_mode;
+/* macro android boot mode */
+#define kernel_boot_mode_regular 0
+#define kernel_boot_mode_charger 1
+typedef uint32_t kernel_boot_mode;
 
 /**
  * @brief load the kernel and boot the device
@@ -105,13 +105,13 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel);
  *
  * @mode type of the kernel - charger or android
  */
-void set_android_boot_mode(android_boot_mode mode);
+void set_kernel_boot_mode(kernel_boot_mode mode);
 
 /**
  * @brief returns kernel type to be loaded
  *
  * @return boot mode - charger or android
  */
-android_boot_mode get_android_boot_mode(void);
+kernel_boot_mode get_kernel_boot_mode(void);
 
 #endif

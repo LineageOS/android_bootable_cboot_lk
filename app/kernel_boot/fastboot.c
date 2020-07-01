@@ -46,7 +46,7 @@
 #include <tegrabl_fastboot_oem.h>
 #include <tegrabl_fastboot_a_b.h>
 #include <tegrabl_transport_usbf.h>
-#include <tegrabl_odmdata_lib.h>
+#include <tegrabl_odmdata_soc.h>
 #include <tegrabl_soc_misc.h>
 #include <tegrabl_keyboard.h>
 #include <tegrabl_timer.h>
@@ -57,7 +57,6 @@
 #include <tegrabl_bootloader_update.h>
 #include <tegrabl_a_b_boot_control.h>
 #include <tegrabl_prevent_rollback.h>
-#include <tegrabl_devicetree.h>
 #include <tegrabl_io.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -66,11 +65,10 @@
 #include <boot.h>
 #include <fastboot.h>
 #include <fastboot_a_b.h>
-#include <fastboot_menu.h>
 #include <linux_load.h>
 #include <arscratch.h>
-#include <address_map_new.h>
-#include <nvboot_bct.h>
+#include <tegrabl_addressmap.h>
+#include <fastboot_menu.h>
 
 #define TEGRABL_RSA_LENGTH 2048
 #define HASH_SZ 32
@@ -80,12 +78,13 @@
 #define SCRATCH_READ(reg)			\
 	NV_READ32(NV_ADDRESS_MAP_SCRATCH_BASE + SCRATCH_##reg)
 
-static enum fastboot_usb_state
+static fastboot_usb_state_t
 	cur_usb_state = FASTBOOT_USB_STATE_NOT_CONFIGURED;
 
 static thread_t *fastboot_thread;
-static enum fastboot_thread_status thread_state = TERMINATED;
+static fastboot_thread_status_t thread_state = TERMINATED;
 
+#if defined(IS_T186)
 static bool is_in_ota_progress(void)
 {
 	uint32_t reg;
@@ -94,13 +93,14 @@ static bool is_in_ota_progress(void)
 	return (BOOT_CHAIN_REG_UPDATE_FLAG_GET(reg) == BC_FLAG_OTA_ON) ?
 		   true : false;
 }
+#endif
 
 static tegrabl_error_t is_fastboot_gpio_long_pressed(bool *is_long_press)
 {
 	uint32_t sampling_delay;
 	uint32_t i;
-	enum key_code key_code;
-	enum key_event key_event;
+	key_code_t key_code;
+	key_event_t key_event;
 	tegrabl_error_t ret = TEGRABL_NO_ERROR;
 
 	ret = tegrabl_keyboard_init();
@@ -139,19 +139,17 @@ tegrabl_error_t check_enter_fastboot(bool *out)
 {
 	/* This function has to be implemented based on platform requirements */
 
-	static bool enter_fastboot;
 	bool pmc_fastboot_flag;
 	tegrabl_error_t ret = TEGRABL_NO_ERROR;
 
-	if (enter_fastboot == true) {
-		*out = true;
-		return ret;
-	}
-
+#if defined(IS_T186)
 	if (is_in_ota_progress()) {
+		*out = false;
 		goto done;
 	}
+#endif
 
+	*out = false;
 	/* check SCRATCH0 fastboot bit */
 	ret = tegrabl_get_pmc_scratch0_flag(TEGRABL_PMC_SCRATCH0_FLAG_FASTBOOT,
 				&pmc_fastboot_flag);
@@ -160,25 +158,22 @@ tegrabl_error_t check_enter_fastboot(bool *out)
 		goto done;
 	}
 
-	/* input *out indicates if clear fastboot bit in SCRATCH0 */
 	if (pmc_fastboot_flag) {
 		/* clear the fastboot flag */
-		tegrabl_set_pmc_scratch0_flag(
-				TEGRABL_PMC_SCRATCH0_FLAG_FASTBOOT,
-				false);
-		enter_fastboot = true;
+		tegrabl_set_pmc_scratch0_flag(TEGRABL_PMC_SCRATCH0_FLAG_FASTBOOT,
+			false);
+		*out = true;
 		goto done;
 	}
 
 	/* check fastboot gpio long press */
-	ret = is_fastboot_gpio_long_pressed(&enter_fastboot);
+	ret = is_fastboot_gpio_long_pressed(out);
 
 done:
-	*out = enter_fastboot;
 	return ret;
 }
 
-enum fastboot_thread_status is_fastboot_running(void)
+fastboot_thread_status_t is_fastboot_running(void)
 {
 	return thread_state;
 }
@@ -189,14 +184,18 @@ tegrabl_error_t fastboot_server(void *arg)
 	struct usbf_priv_info usb_info;
 	(void)arg;
 
-	pr_info("starting fastboot mode\n");
+	pr_debug("starting fastboot mode\n");
 
 	tegrabl_fastboot_cmd_init();
 
 	while (true) {
 		usb_info.reopen = false;
 		usb_info.usb_class = TEGRABL_USB_CLASS_FASTBOOT;
-		tegrabl_transport_usbf_open(0, &usb_info);
+		err = tegrabl_transport_usbf_open(0, &usb_info);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_critical("%s USB enumeration failed\n", __func__);
+			goto fail;
+		}
 		pr_info("%s FASTBOOT enumeration success\n", __func__);
 
 		err = tegrabl_fastboot_command_handler();
@@ -261,6 +260,7 @@ end:
 	return ret;
 }
 
+#if defined(CONFIG_ENABLE_A_B_SLOT)
 static tegrabl_error_t is_ratchet_update_required(void *blob, bool *is_required)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
@@ -299,77 +299,26 @@ static tegrabl_error_t is_ratchet_update_required(void *blob, bool *is_required)
 
 	return TEGRABL_NO_ERROR;
 }
-
-static tegrabl_error_t brbct_writer(const void *buffer, uint64_t size, void *aux_info)
-{
-	return tegrabl_partition_write((struct tegrabl_partition *)aux_info, buffer, size);
-}
-
-static tegrabl_error_t flush_brbct_to_storage(uintptr_t new_bct, uint32_t size)
-{
-	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	struct tegrabl_partition part;
-	tegrabl_error_t (*writer)(const void *buffer, uint64_t size, void *aux_info);
-	uint64_t part_size = 0;
-	uint64_t bct_size = 0;
-
-	err = tegrabl_brbct_update_customer_data(new_bct, size);
-	if (err != TEGRABL_NO_ERROR) {
-		goto fail;
-	}
-
-	err = tegrabl_partition_open("BCT", &part);
-	if (err != TEGRABL_NO_ERROR) {
-		goto fail;
-	}
-
-	writer = brbct_writer;
-	bct_size = sizeof(NvBootConfigTable);
-	err = tegrabl_brbct_write_multiple(writer, (void *)new_bct, (void *)&part,
-									   part_size, bct_size, bct_size);
-	if (err != TEGRABL_NO_ERROR) {
-		goto fail;
-	}
-
-	pr_info("BRBCT write successfully to storage\n");
-
-fail:
-	tegrabl_partition_close(&part);
-	return err;
-}
+#endif
 
 tegrabl_error_t fastboot_init(void)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
+
+#if defined(IS_T186)
 	struct tegrabl_bl_update_callbacks cbs;
+#endif
 
 	(void)confirm_lock_menu;
 	(void)confirm_unlock_menu;
 
-/* Kernel-dtb needs to be loaded for fastboot */
-#if defined(CONFIG_DT_SUPPORT)
-	void *kernel_dtb = NULL;
-
-	err = tegrabl_load_binary(TEGRABL_BINARY_KERNEL_DTB, &kernel_dtb, NULL);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Kernel-dtb loading failed\n");
-		return err;
-	}
-	err = tegrabl_dt_set_fdt_handle(TEGRABL_DT_KERNEL, kernel_dtb);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Kernel-dtb init failed\n");
-		return err;
-	}
-	pr_info("Kernel_dtb @%p\n", kernel_dtb);
-#endif
-
 	/* Initialize the fastboot framework */
 	err = tegrabl_fastboot_set_callbacks();
-	if (err != TEGRABL_NO_ERROR) {
+	if (err != TEGRABL_NO_ERROR)
 		return err;
-	}
 
-	cbs.update_bct = flush_brbct_to_storage;
+#if defined(IS_T186)
+	cbs.update_bct = tegrabl_brbct_update_customer_data;
 	cbs.verify_payload = verify_bl_payload;
 	cbs.get_slot_num = fastboot_a_b_get_slot_num;
 	cbs.get_slot_via_suffix = tegrabl_a_b_get_slot_via_suffix;
@@ -377,6 +326,7 @@ tegrabl_error_t fastboot_init(void)
 	cbs.is_ratchet_update_required = is_ratchet_update_required;
 	cbs.is_always_ab_partition = fastboot_a_b_is_always_ab_partition;
 	tegrabl_bl_update_set_callbacks(&cbs);
+#endif
 
 	fastboot_thread = thread_create("fastboot-server-thread",
 									(thread_start_routine)fastboot_server,
@@ -428,40 +378,7 @@ exit_menu:
 	return err;
 }
 
-static tegrabl_error_t get_fuse_ecid(uint32_t *ecid, uint32_t size)
-{
-	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	uint32_t ecid_size;
-
-	if (ecid == NULL) {
-		pr_error("Invalid ECID addr\n");
-		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
-		goto done;
-	}
-
-	err = tegrabl_fuse_query_size(FUSE_UID, &ecid_size);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Failed to query size of ECID\n");
-		TEGRABL_SET_HIGHEST_MODULE(err);
-		goto done;
-	}
-	if (size < ecid_size) {
-		pr_error("Not enough buffer for ECID\n");
-		err = TEGRABL_ERROR(TEGRABL_ERR_NO_MEMORY, 0);
-		goto done;
-	}
-
-	err = tegrabl_fuse_read(FUSE_UID, ecid, ecid_size);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Failed to read ECID\n");
-		TEGRABL_SET_HIGHEST_MODULE(err);
-	}
-
-done:
-	return err;
-}
-
-static tegrabl_error_t change_device_state(enum fastboot_lockcmd cmd)
+static tegrabl_error_t change_device_state(fastboot_lockcmd_t cmd)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	struct menu *confirm_menu;
@@ -485,8 +402,10 @@ static tegrabl_error_t change_device_state(enum fastboot_lockcmd cmd)
 			if (frp_enabled) {
 				pr_warn("FRP is enabled, unlock device is not allowed\n");
 				fastboot_fail("Device cannot be unlocked");
+#if defined(IS_T186)
 				tegrabl_display_text_set_cursor(CURSOR_END);
 				tegrabl_display_printf(RED, "Device cannot be unlocked");
+#endif
 				return TEGRABL_ERROR(TEGRABL_ERR_INVALID_STATE, 0);
 			}
 			confirm_menu = &confirm_unlock_menu;
@@ -633,8 +552,9 @@ tegrabl_error_t tegrabl_fastboot_set_callbacks(void)
 	/* Register cboot fastboot APIs to the fastboot framework in common repo */
 	oem_ops->change_device_state = change_device_state;
 	oem_ops->is_device_unlocked = tegrabl_odmdata_is_device_unlocked;
-	oem_ops->get_fuse_ecid = get_fuse_ecid;
+	oem_ops->get_fuse_ecid = tegrabl_get_ecid_str;
 
+#if defined(IS_T186)
 	a_b_ops->get_current_slot = fastboot_a_b_get_current_slot;
 	a_b_ops->get_slot_num = fastboot_a_b_get_slot_num;
 	a_b_ops->get_slot_suffix = fastboot_a_b_get_slot_suffix;
@@ -642,6 +562,7 @@ tegrabl_error_t tegrabl_fastboot_set_callbacks(void)
 	a_b_ops->is_slot_unbootable = fastboot_a_b_is_slot_unbootable;
 	a_b_ops->get_slot_retry_count = fastboot_a_b_get_slot_retry_count;
 	a_b_ops->slot_set_active = fastboot_a_b_slot_set_active;
+#endif
 
 	return TEGRABL_NO_ERROR;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -76,11 +76,15 @@ static tegrabl_error_t fastboot_menu_forced_recovery(void *arg)
 static struct menu_entry fastboot_menu_entries[] = {
 	{ /* Entry 1 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Continue\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Continue booting ...\n"
 		},
 		.on_select_callback = fastboot_menu_continue,
@@ -88,11 +92,15 @@ static struct menu_entry fastboot_menu_entries[] = {
 	},
 	{ /* Entry 2 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Boot recovery kernel\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = RED,
+#endif
 			.data = "Booting recovery kernel ...\n\n"
 		},
 		.on_select_callback = fastboot_menu_recovery,
@@ -100,11 +108,15 @@ static struct menu_entry fastboot_menu_entries[] = {
 	},
 	{ /* Entry 3 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Reboot\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Rebooting ...!!!\n\n"
 		},
 		.on_select_callback = fastboot_menu_reset,
@@ -112,11 +124,15 @@ static struct menu_entry fastboot_menu_entries[] = {
 	},
 	{ /* Entry 4 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Poweroff\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Powering off ...!!!\n\n"
 		},
 		.on_select_callback = fastboot_menu_poweroff,
@@ -124,11 +140,15 @@ static struct menu_entry fastboot_menu_entries[] = {
 	},
 	{ /* Entry 5 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Forced Recovery\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Booting into usb recovery mode ...\n\n"
 		},
 		.on_select_callback = fastboot_menu_forced_recovery,
@@ -157,11 +177,15 @@ static tegrabl_error_t confirm_menu_unlock_bootloader(void *arg)
 static struct menu_entry confirm_lock_menu_entries[] = {
 	{ /* Entry 1 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Confirm\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Confirmed. Locking the bootloader\n\n"
 		},
 		.on_select_callback = confirm_menu_lock_bootloader,
@@ -169,11 +193,15 @@ static struct menu_entry confirm_lock_menu_entries[] = {
 	},
 	{ /* Entry 2 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Back to menu\n",
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = RED,
+#endif
 			.data = "Okay, going back to menu ...\n\n"
 		},
 		.on_select_callback = NULL,
@@ -184,11 +212,15 @@ static struct menu_entry confirm_lock_menu_entries[] = {
 static struct menu_entry confirm_unlock_menu_entries[] = {
 	{ /* Entry 1 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Confirm\n"
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = GREEN,
+#endif
 			.data = "Confirmed. Unlocking the bootloader\n\n"
 		},
 		.on_select_callback = confirm_menu_unlock_bootloader,
@@ -196,11 +228,15 @@ static struct menu_entry confirm_unlock_menu_entries[] = {
 	},
 	{ /* Entry 2 */
 		.ms_entry = {
+#if defined(IS_T186)
 			.color = WHITE,
+#endif
 			.data = "Back to menu\n",
 		},
 		.ms_on_select = {
+#if defined(IS_T186)
 			.color = RED,
+#endif
 			.data = "Okay, going back to menu ...\n\n"
 		},
 		.on_select_callback = NULL,
@@ -213,6 +249,7 @@ struct menu fastboot_menu = {
 	.name = "fastboot-menu",
 	.menu_entries = fastboot_menu_entries,
 	.num_menu_entries = ARRAY_SIZE(fastboot_menu_entries),
+#if defined(IS_T186)
 	.menu_header = {
 		.valid = true,
 		.ms = {
@@ -220,6 +257,7 @@ struct menu fastboot_menu = {
 			.data = "Fastboot menu:\n"
 		}
 	},
+#endif
 	.timeout = 0,
 	.current_entry = 0,
 };
@@ -229,6 +267,7 @@ struct menu confirm_lock_menu = {
 	.name = "confirm-lock-menu",
 	.menu_entries = confirm_lock_menu_entries,
 	.num_menu_entries = ARRAY_SIZE(confirm_lock_menu_entries),
+#if defined(IS_T186)
 	.menu_header = {
 		.valid = true,
 		.ms = {
@@ -241,6 +280,7 @@ struct menu confirm_lock_menu = {
 					"personal data.\n\n\n"
 		}
 	},
+#endif
 	.timeout = 0,
 	.current_entry = 0,
 };
@@ -250,6 +290,7 @@ struct menu confirm_unlock_menu = {
 	.name = "confirm-unlock-menu",
 	.menu_entries = confirm_unlock_menu_entries,
 	.num_menu_entries = ARRAY_SIZE(confirm_unlock_menu_entries),
+#if defined(IS_T186)
 	.menu_header = {
 		.valid = true,
 		.ms = {
@@ -270,6 +311,7 @@ struct menu confirm_unlock_menu = {
 					"your personal data.\n\n\n"
 		}
 	},
+#endif
 	.timeout = 0,
 	.current_entry = 0,
 };
