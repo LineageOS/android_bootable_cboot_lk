@@ -27,5 +27,5 @@ MODULE_DEPS +=	\
 	lib/console
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/drivers/eqos \
-	$(LOCAL_DIR)/../../../../common/drivers/phy
+	$(LOCAL_DIR)/../../../common/drivers/eqos \
+	$(LOCAL_DIR)/../../../common/drivers/phy

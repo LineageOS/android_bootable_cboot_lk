@@ -13,26 +13,27 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/drivers/uart \
-	$(LOCAL_DIR)/../../../../common/drivers/wdt \
-	$(LOCAL_DIR)/../../../../common/lib/console \
-	$(LOCAL_DIR)/../../../../common/lib/debug \
-	$(LOCAL_DIR)/../../../../common/lib/malloc \
-	$(LOCAL_DIR)/../../../../common/lib/gpt \
-	$(LOCAL_DIR)/../../../../common/lib/utils \
-	$(LOCAL_DIR)/../../../../common/lib/partition_manager \
-	$(LOCAL_DIR)/../../../../common/lib/fastboot \
-	$(LOCAL_DIR)/../../../../common/lib/nvblob \
-	$(LOCAL_DIR)/../../../../common/lib/nvblob_bmp \
-	$(LOCAL_DIR)/../../../../common/lib/frp \
-	$(LOCAL_DIR)/../../../../common/lib/bootloader_update \
-	$(LOCAL_DIR)/../../../../common/lib/linuxboot
+	$(LOCAL_DIR)/../../../common/drivers/uart \
+	$(LOCAL_DIR)/../../../common/drivers/wdt \
+	$(LOCAL_DIR)/../../../common/lib/console \
+	$(LOCAL_DIR)/../../../common/lib/debug \
+	$(LOCAL_DIR)/../../../common/lib/malloc \
+	$(LOCAL_DIR)/../../../common/lib/gpt \
+	$(LOCAL_DIR)/../../../common/lib/utils \
+	$(LOCAL_DIR)/../../../common/lib/partition_manager \
+	$(LOCAL_DIR)/../../../common/lib/fastboot \
+	$(LOCAL_DIR)/../../../common/lib/nvblob \
+	$(LOCAL_DIR)/../../../common/lib/nvblob_bmp \
+	$(LOCAL_DIR)/../../../common/lib/frp \
+	$(LOCAL_DIR)/../../../common/lib/bootloader_update \
+	$(LOCAL_DIR)/../../../common/lib/linuxboot
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR) \
-	../../common/include \
-	../../common/include/drivers \
-	../../common/include/drivers/display
+	../t18x/common/include \
+	../$(TARGET_FAMILY)/common/include/drivers \
+	../t18x/common/include/drivers \
+	../t18x/common/include/drivers/display
 
 ifeq ($(PLATFORM_IS_AFTER_N),1)
 # verified boot 2.0

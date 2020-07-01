@@ -3,7 +3,7 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_DEPS += \
-	../../common/lib/clib
+	../common/lib/clib
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/atoi.c \

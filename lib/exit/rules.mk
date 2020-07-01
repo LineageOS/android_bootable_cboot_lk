@@ -14,6 +14,6 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/exit.c
 
 GLOBAL_INCLUDES += \
-	$(LOCAL_DIR)/../../../../common/include/lib
+	$(LOCAL_DIR)/../../../common/include/lib
 
 include make/module.mk

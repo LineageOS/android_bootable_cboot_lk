@@ -19,52 +19,52 @@ MODULE_DEPS += \
 	platform/tegra_shared \
 	lib/menu \
 	lib/exit \
-	$(LOCAL_DIR)/../../../common/lib/tegrabl_brbct \
-	$(LOCAL_DIR)/../../../common/lib/tegrabl_brbit \
-	$(LOCAL_DIR)/../../../common/lib/mb1bct \
-	$(LOCAL_DIR)/../../../common/drivers/fuse \
-	$(LOCAL_DIR)/../../../common/drivers/timer \
-	$(LOCAL_DIR)/../../../common/drivers/padctl \
-	$(LOCAL_DIR)/../../../common/drivers/soc/$(TARGET)/clocks \
-	$(LOCAL_DIR)/../../../common/drivers/vic \
-	$(LOCAL_DIR)/../../../common/soc/$(TARGET)/misc \
-	$(LOCAL_DIR)/../../../common/lib/mce \
-	$(LOCAL_DIR)/../../../common/lib/rollback_prevention \
-	$(LOCAL_DIR)/../../../../common/arch/arm64 \
-	$(LOCAL_DIR)/../../../../common/drivers/i2c \
-	$(LOCAL_DIR)/../../../../common/drivers/i2c_dev \
-	$(LOCAL_DIR)/../../../../common/drivers/eeprom \
-	$(LOCAL_DIR)/../../../../common/lib/eeprom_manager \
-	$(LOCAL_DIR)/../../../../common/drivers/gpcdma \
-	$(LOCAL_DIR)/../../../common/lib/tegrabl_auth \
-	$(LOCAL_DIR)/../../../common/lib/tegrabl_se_keystore \
-	$(LOCAL_DIR)/../../../../common/drivers/display \
-	$(LOCAL_DIR)/../../../../common/drivers/gpio \
-	$(LOCAL_DIR)/../../../../common/drivers/qspi \
-	$(LOCAL_DIR)/../../../../common/drivers/qspi_flash \
-	$(LOCAL_DIR)/../../../../common/drivers/ufs \
-	$(LOCAL_DIR)/../../../../common/drivers/keyboard \
-	$(LOCAL_DIR)/../../../../common/lib/profiler \
-	$(LOCAL_DIR)/../../../../common/lib/psci \
-	$(LOCAL_DIR)/../../../../common/lib/exit \
-	$(LOCAL_DIR)/../../../../common/lib/blockdev \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_error \
-	$(LOCAL_DIR)/../../../../common/lib/ipc \
-	$(LOCAL_DIR)/../../../../common/drivers/sdmmc \
-	$(LOCAL_DIR)/../../../../common/drivers/spi \
-	$(LOCAL_DIR)/../../../../common/drivers/sata \
-	$(LOCAL_DIR)/../../../../common/drivers/pmic \
-	$(LOCAL_DIR)/../../../../common/drivers/pmic/max77620 \
-	$(LOCAL_DIR)/../../../../common/drivers/regulator \
-	$(LOCAL_DIR)/../../../../common/lib/storage
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbct \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbit \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/mb1bct \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/fuse \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/timer \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/padctl \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/soc/$(TARGET)/clocks \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/vic \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/misc \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/mce \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/rollback_prevention \
+	$(LOCAL_DIR)/../../../common/arch/arm64 \
+	$(LOCAL_DIR)/../../../common/drivers/i2c \
+	$(LOCAL_DIR)/../../../common/drivers/i2c_dev \
+	$(LOCAL_DIR)/../../../common/drivers/eeprom \
+	$(LOCAL_DIR)/../../../common/lib/eeprom_manager \
+	$(LOCAL_DIR)/../../../common/drivers/gpcdma \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_auth \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_se_keystore \
+	$(LOCAL_DIR)/../../../common/drivers/display \
+	$(LOCAL_DIR)/../../../common/drivers/gpio \
+	$(LOCAL_DIR)/../../../common/drivers/qspi \
+	$(LOCAL_DIR)/../../../common/drivers/qspi_flash \
+	$(LOCAL_DIR)/../../../common/drivers/ufs \
+	$(LOCAL_DIR)/../../../common/drivers/keyboard \
+	$(LOCAL_DIR)/../../../common/lib/profiler \
+	$(LOCAL_DIR)/../../../common/lib/psci \
+	$(LOCAL_DIR)/../../../common/lib/exit \
+	$(LOCAL_DIR)/../../../common/lib/blockdev \
+	$(LOCAL_DIR)/../../../common/lib/tegrabl_error \
+	$(LOCAL_DIR)/../../../common/lib/ipc \
+	$(LOCAL_DIR)/../../../common/drivers/sdmmc \
+	$(LOCAL_DIR)/../../../common/drivers/spi \
+	$(LOCAL_DIR)/../../../common/drivers/sata \
+	$(LOCAL_DIR)/../../../common/drivers/pmic \
+	$(LOCAL_DIR)/../../../common/drivers/pmic/max77620 \
+	$(LOCAL_DIR)/../../../common/drivers/regulator \
+	$(LOCAL_DIR)/../../../common/lib/storage
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR) \
-	$(LOCAL_DIR)/../../../../common/include/soc/t186 \
-	$(LOCAL_DIR)/../../../common/include/drivers \
 	$(LOCAL_DIR)/../../../common/include/soc/t186 \
-	$(LOCAL_DIR)/../../../../../../hwinc-t18x \
-	$(LOCAL_DIR)/../../../../../../bootloader/partner/t18x/mb1-headers
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/include/drivers \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/include/soc/t186 \
+	$(LOCAL_DIR)/../../../../../hardware/nvidia/hwinc/$(TARGET_FAMILY) \
+	$(LOCAL_DIR)/../../../t18x/mb1-headers
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/platform.c \

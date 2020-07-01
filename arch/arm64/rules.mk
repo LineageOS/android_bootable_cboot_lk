@@ -35,7 +35,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/stacktrace.c \
 	$(LOCAL_DIR)/cache-ops.S \
 	$(LOCAL_DIR)/dmamap.c \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/nvtboot/cpu/soc/$(TARGET)/tz_init.c
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/nvtboot/cpu/soc/$(TARGET)/tz_init.c
 
 GLOBAL_DEFINES += \
 	ARCH_DEFAULT_STACK_SIZE=8192

@@ -27,7 +27,7 @@ GLOBAL_DEFINES += \
 endif
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/lib/nct \
-	$(LOCAL_DIR)/../../../../common/lib/tos
+	$(LOCAL_DIR)/../../../common/lib/nct \
+	$(LOCAL_DIR)/../../../common/lib/tos
 
 # CONFIG_INITIALIZE_DISPLAY: 0-DSI, 1-HDMI, 2-DP, 3-EDP

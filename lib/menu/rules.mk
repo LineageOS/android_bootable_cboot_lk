@@ -14,8 +14,8 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/menu.c
 
 GLOBAL_INCLUDES += \
-	$(LOCAL_DIR)/../../../../common/include/drivers \
-	$(LOCAL_DIR)/../../../../common/include/lib \
-	$(LOCAL_DIR)/../../../../common/include
+	$(LOCAL_DIR)/../../../common/include/drivers \
+	$(LOCAL_DIR)/../../../common/include/lib \
+	$(LOCAL_DIR)/../../../common/include
 
 include make/module.mk

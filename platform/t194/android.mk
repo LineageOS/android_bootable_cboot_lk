@@ -26,5 +26,5 @@ GLOBAL_DEFINES += \
 endif
 
 MODULE_DEPS += \
-	$(LOCAL_DIR)/../../../../common/lib/nct \
-	$(LOCAL_DIR)/../../../../common/lib/tos
+	$(LOCAL_DIR)/../../../common/lib/nct \
+	$(LOCAL_DIR)/../../../common/lib/tos

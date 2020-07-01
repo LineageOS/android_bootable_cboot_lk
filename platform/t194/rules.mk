@@ -15,68 +15,68 @@ MODULE := $(LOCAL_DIR)
 ARCH := arm64
 ARM64_CPU := cortex-a57
 
-include $(LOCAL_DIR)/../../../../../../hwinc-t19x/rules.mk
+include $(LOCAL_DIR)/../../../../../hardware/nvidia/hwinc/t19x/rules.mk
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR) \
-	$(LOCAL_DIR)/../../../../common/include/soc/t194 \
-	$(LOCAL_DIR)/../../../../common/include/arch \
-	$(LOCAL_DIR)/../../../../common/include/drivers \
-	$(LOCAL_DIR)/../../../../common/include/drivers/display \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/include/soc/$(TARGET) \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/config_storage \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/mb1-headers \
-	$(LOCAL_DIR)/../../../../t18x/common/include \
-	$(LOCAL_DIR)/../../../../$(NV_TARGET_SOC_FAMILY)/common/include/lib \
-	$(LOCAL_DIR)/../../../../../../hwinc-$(TARGET_FAMILY)/$(NV_HWINC_T19X_CL)
+	$(LOCAL_DIR)/../../../common/include/soc/t194 \
+	$(LOCAL_DIR)/../../../common/include/arch \
+	$(LOCAL_DIR)/../../../common/include/drivers \
+	$(LOCAL_DIR)/../../../common/include/drivers/display \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/include/soc/$(TARGET) \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/config_storage \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/mb1-headers \
+	$(LOCAL_DIR)/../../../t18x/common/include \
+	$(LOCAL_DIR)/../../../$(NV_TARGET_SOC_FAMILY)/common/include/lib \
+	$(LOCAL_DIR)/../../../../../hardware/nvidia/hwinc/$(TARGET_FAMILY)/$(NV_HWINC_T19X_CL)
 
 MODULE_DEPS += \
 	platform/tegra_shared \
 	lib/exit \
 	lib/menu \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/drivers/timer \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/drivers/fuse \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/drivers/padctl \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbit \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbct \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/tegrabl_auth \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/misc \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/ccplex_nvg \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/ccplex_cache \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/drivers/soc/$(TARGET)/clocks \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/soc/t194/qual_engine \
-	$(LOCAL_DIR)/../../../../common/lib/ipc \
-	$(LOCAL_DIR)/../../../../common/lib/blockdev \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_error \
-	$(LOCAL_DIR)/../../../../common/drivers/sdmmc \
-	$(LOCAL_DIR)/../../../../common/drivers/sata \
-	$(LOCAL_DIR)/../../../../common/drivers/spi \
-	$(LOCAL_DIR)/../../../../common/drivers/ufs \
-	$(LOCAL_DIR)/../../../../common/drivers/gpcdma \
-	$(LOCAL_DIR)/../../../../common/drivers/qspi \
-	$(LOCAL_DIR)/../../../../common/drivers/qspi_flash \
-	$(LOCAL_DIR)/../../../../common/drivers/i2c \
-	$(LOCAL_DIR)/../../../../common/drivers/i2c_dev \
-	$(LOCAL_DIR)/../../../../common/drivers/eeprom \
-	$(LOCAL_DIR)/../../../../common/drivers/usbh \
-	$(LOCAL_DIR)/../../../../common/drivers/usb/storage \
-	$(LOCAL_DIR)/../../../../common/drivers/pcie \
-	$(LOCAL_DIR)/../../../../common/lib/eeprom_manager \
-	$(LOCAL_DIR)/../../../../common/arch/arm64 \
-	$(LOCAL_DIR)/../../../../t18x/common/lib/mce \
-	$(LOCAL_DIR)/../../../../common/lib/psci \
-	$(LOCAL_DIR)/../../../../common/lib/exit \
-	$(LOCAL_DIR)/../../../../common/drivers/pmic \
-	$(LOCAL_DIR)/../../../../common/drivers/pmic/max77620 \
-	$(LOCAL_DIR)/../../../../common/drivers/regulator \
-	$(LOCAL_DIR)/../../../../common/drivers/gpio \
-	$(LOCAL_DIR)/../../../../common/drivers/keyboard \
-	$(LOCAL_DIR)/../../../../common/drivers/comb_uart \
-	$(LOCAL_DIR)/../../../../common/lib/a_b_boot \
-	$(LOCAL_DIR)/../../../../common/drivers/pwm \
-	$(LOCAL_DIR)/../../../../common/drivers/display \
-	$(LOCAL_DIR)/../../../../common/lib/cbo \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/device_prod
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/timer \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/fuse \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/padctl \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbit \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_brbct \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/tegrabl_auth \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/misc \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/ccplex_nvg \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/soc/$(TARGET)/ccplex_cache \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/drivers/soc/$(TARGET)/clocks \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/soc/t194/qual_engine \
+	$(LOCAL_DIR)/../../../common/lib/ipc \
+	$(LOCAL_DIR)/../../../common/lib/blockdev \
+	$(LOCAL_DIR)/../../../common/lib/tegrabl_error \
+	$(LOCAL_DIR)/../../../common/drivers/sdmmc \
+	$(LOCAL_DIR)/../../../common/drivers/sata \
+	$(LOCAL_DIR)/../../../common/drivers/spi \
+	$(LOCAL_DIR)/../../../common/drivers/ufs \
+	$(LOCAL_DIR)/../../../common/drivers/gpcdma \
+	$(LOCAL_DIR)/../../../common/drivers/qspi \
+	$(LOCAL_DIR)/../../../common/drivers/qspi_flash \
+	$(LOCAL_DIR)/../../../common/drivers/i2c \
+	$(LOCAL_DIR)/../../../common/drivers/i2c_dev \
+	$(LOCAL_DIR)/../../../common/drivers/eeprom \
+	$(LOCAL_DIR)/../../../common/drivers/usbh \
+	$(LOCAL_DIR)/../../../common/drivers/usb/storage \
+	$(LOCAL_DIR)/../../../common/drivers/pcie \
+	$(LOCAL_DIR)/../../../common/lib/eeprom_manager \
+	$(LOCAL_DIR)/../../../common/arch/arm64 \
+	$(LOCAL_DIR)/../../../t18x/common/lib/mce \
+	$(LOCAL_DIR)/../../../common/lib/psci \
+	$(LOCAL_DIR)/../../../common/lib/exit \
+	$(LOCAL_DIR)/../../../common/drivers/pmic \
+	$(LOCAL_DIR)/../../../common/drivers/pmic/max77620 \
+	$(LOCAL_DIR)/../../../common/drivers/regulator \
+	$(LOCAL_DIR)/../../../common/drivers/gpio \
+	$(LOCAL_DIR)/../../../common/drivers/keyboard \
+	$(LOCAL_DIR)/../../../common/drivers/comb_uart \
+	$(LOCAL_DIR)/../../../common/lib/a_b_boot \
+	$(LOCAL_DIR)/../../../common/drivers/pwm \
+	$(LOCAL_DIR)/../../../common/drivers/display \
+	$(LOCAL_DIR)/../../../common/lib/cbo \
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/device_prod
 
 ifeq ($(filter t19x, $(TARGET_FAMILY)),)
 MODULE_DEPS += \
@@ -86,7 +86,7 @@ endif
 MODULE_SRCS += \
 	$(LOCAL_DIR)/platform.c \
 	$(LOCAL_DIR)/platform_config.c \
-	$(LOCAL_DIR)/../../../../$(TARGET_FAMILY)/common/lib/config_storage/config_storage.c
+	$(LOCAL_DIR)/../../../$(TARGET_FAMILY)/common/lib/config_storage/config_storage.c
 
 MEMBASE := 0x96000000
 GLOBAL_DEFINES += \
@@ -134,7 +134,7 @@ GLOBAL_DEFINES += \
 	CONFIG_SKIP_GPCDMA_RESET=1 \
 	CONFIG_DEBUG_LOGLEVEL=TEGRABL_LOG_INFO
 
-ALLMODULE_OBJS += $(LOCAL_DIR)/../../../../t19x/common/drivers/se/prebuilt/se.mod.o
+ALLMODULE_OBJS += $(LOCAL_DIR)/../../../t19x/common/drivers/se/prebuilt/se.mod.o
 
 # Move optional CONFIG items into sub-make files
 ifeq ($(NV_BUILD_SYSTEM_TYPE),l4t)
