@@ -13,11 +13,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(NVIDIA_DEFAULTS)
 
-ifneq ($(filter t186,$(_cboot_project)),)
 LOCAL_MODULE        := cboot
-else
-LOCAL_MODULE        := cboot_$(_cboot_project)
-endif
 LOCAL_MODULE_SUFFIX := .bin
 LOCAL_MODULE_PATH   := $(PRODUCT_OUT)
 LOCAL_MODULE_CLASS  := EXECUTABLES
