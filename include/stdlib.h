@@ -32,6 +32,7 @@
 #include <endian.h>
 #include <rand.h>
 #include <arch/defines.h>
+#include <debug.h>
 
 int atoi(const char *num);
 unsigned int atoui(const char *num);
@@ -56,6 +57,8 @@ unsigned long long atoull(const char *num);
 /* allocate a buffer on the stack aligned and padded to the cpu's cache line size */
 #define STACKBUF_DMA_ALIGN(var, size) \
     uint8_t __##var[(size) + CACHE_LINE]; uint8_t *var = (uint8_t *)(ROUNDUP((addr_t)__##var, CACHE_LINE))
+
+#define abort() panic("die\n")
 
 #endif
 
