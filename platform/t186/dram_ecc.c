@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA Corporation.  All Rights Reserved.
+ * Copyright (c) 2018-2019, NVIDIA Corporation.  All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -21,6 +21,8 @@
 #include <tegrabl_drf.h>
 #include <armc.h>
 #include <tegrabl_linuxboot_helper.h>
+#include <tegrabl_linuxboot_utils.h>
+#include <tegrabl_io.h>
 
 #define RAM_BASE NV_ADDRESS_MAP_EMEM_BASE
 
@@ -56,8 +58,9 @@ static void cb_dram_ecc_sort_carveout_list(void)
 	for (cotype = CARVEOUT_NVDEC; cotype < CARVEOUT_NUM; cotype++) {
 		/* excluding sysram, primary and extended carveouts */
 		if ((carveout[cotype].base < dram_start) ||
-			(carveout[cotype].size == 0) || (cotype == 33) ||
-			(cotype == 34)) {
+			(carveout[cotype].base > dram_end) ||
+			(carveout[cotype].size == 0) || (cotype == CARVEOUT_PRIMARY) ||
+			(cotype == CARVEOUT_EXTENDED)) {
 			continue;
 		}
 
@@ -65,7 +68,8 @@ static void cb_dram_ecc_sort_carveout_list(void)
 		dram_carveouts_count++;
 	}
 
-	sort(dram_carveouts, dram_carveouts_count);
+	tegrabl_sort((struct tegrabl_carveout_info *)boot_params->global_data.carveout,
+			dram_carveouts, dram_carveouts_count);
 }
 
 #if defined(CONFIG_VIC_SCRUB)

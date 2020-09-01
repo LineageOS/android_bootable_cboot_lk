@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2016-2019, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -19,20 +19,23 @@ MODULE_DEPS += \
 	platform/tegra_shared \
 	lib/menu \
 	lib/exit \
+	$(LOCAL_DIR)/../../../common/lib/tegrabl_brbct \
+	$(LOCAL_DIR)/../../../common/lib/tegrabl_brbit \
+	$(LOCAL_DIR)/../../../common/lib/mb1bct \
+	$(LOCAL_DIR)/../../../common/drivers/fuse \
+	$(LOCAL_DIR)/../../../common/drivers/timer \
+	$(LOCAL_DIR)/../../../common/drivers/padctl \
+	$(LOCAL_DIR)/../../../common/drivers/soc/$(TARGET)/clocks \
+	$(LOCAL_DIR)/../../../common/drivers/vic \
+	$(LOCAL_DIR)/../../../common/soc/$(TARGET)/misc \
+	$(LOCAL_DIR)/../../../common/lib/mce \
+	$(LOCAL_DIR)/../../../common/lib/rollback_prevention \
 	$(LOCAL_DIR)/../../../../common/arch/arm64 \
 	$(LOCAL_DIR)/../../../../common/drivers/i2c \
 	$(LOCAL_DIR)/../../../../common/drivers/i2c_dev \
 	$(LOCAL_DIR)/../../../../common/drivers/eeprom \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_nct \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_eeprom_manager \
-	$(LOCAL_DIR)/../../../common/lib/ipc \
-	$(LOCAL_DIR)/../../../common/drivers/fuse \
-	$(LOCAL_DIR)/../../../common/drivers/gpcdma \
-	$(LOCAL_DIR)/../../../common/drivers/vic \
-	$(LOCAL_DIR)/../../../common/soc/$(TARGET)/misc \
-	$(LOCAL_DIR)/../../../common/drivers/soc/$(TARGET)/power \
-	$(LOCAL_DIR)/../../../common/lib/mce \
-	$(LOCAL_DIR)/../../../common/lib/rollback_prevention \
+	$(LOCAL_DIR)/../../../../common/lib/eeprom_manager \
+	$(LOCAL_DIR)/../../../../common/drivers/gpcdma \
 	$(LOCAL_DIR)/../../../common/lib/tegrabl_auth \
 	$(LOCAL_DIR)/../../../common/lib/tegrabl_se_keystore \
 	$(LOCAL_DIR)/../../../../common/drivers/display \
@@ -41,25 +44,27 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../../common/drivers/qspi_flash \
 	$(LOCAL_DIR)/../../../../common/drivers/ufs \
 	$(LOCAL_DIR)/../../../../common/drivers/keyboard \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_nvblob \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_nvblob_bmp \
 	$(LOCAL_DIR)/../../../../common/lib/profiler \
 	$(LOCAL_DIR)/../../../../common/lib/psci \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_exit \
+	$(LOCAL_DIR)/../../../../common/lib/exit \
+	$(LOCAL_DIR)/../../../../common/lib/blockdev \
+	$(LOCAL_DIR)/../../../../common/lib/tegrabl_error \
+	$(LOCAL_DIR)/../../../../common/lib/ipc \
+	$(LOCAL_DIR)/../../../../common/drivers/sdmmc \
 	$(LOCAL_DIR)/../../../../common/drivers/spi \
 	$(LOCAL_DIR)/../../../../common/drivers/sata \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_bootloader_update \
 	$(LOCAL_DIR)/../../../../common/drivers/pmic \
 	$(LOCAL_DIR)/../../../../common/drivers/pmic/max77620 \
 	$(LOCAL_DIR)/../../../../common/drivers/regulator \
-	$(LOCAL_DIR)/../../../../common/lib/tegrabl_storage
+	$(LOCAL_DIR)/../../../../common/lib/storage
 
 GLOBAL_INCLUDES += \
 	$(LOCAL_DIR) \
+	$(LOCAL_DIR)/../../../../common/include/soc/t186 \
 	$(LOCAL_DIR)/../../../common/include/drivers \
 	$(LOCAL_DIR)/../../../common/include/soc/t186 \
 	$(LOCAL_DIR)/../../../../../../hwinc-t18x \
-	$(LOCAL_DIR)/../../../../../../mb1/partner-t18x/include
+	$(LOCAL_DIR)/../../../../../../bootloader/partner/t18x/mb1-headers
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/platform.c \
@@ -75,9 +80,11 @@ GLOBAL_DEFINES += \
 	FIXED_PLLP_FREQ=$(FIXED_PLLP_FREQ) \
 	MAX_CPU_CLUSTERS=2 \
 	MAX_CPUS_PER_CLUSTER=4 \
+	AVB_COMPILATION=1 \
 	CONFIG_ENABLE_GPT=1 \
 	CONFIG_ENABLE_UART=1 \
 	CONFIG_ENABLE_GPIO=1 \
+	CONFIG_ENABLE_GPIO_DT_BASED=1 \
 	CONFIG_ENABLE_PARTITION_MANAGER=1 \
 	CONFIG_ENABLE_EMMC=1 \
 	CONFIG_ENABLE_SDMMC_64_BIT_SUPPORT=1 \
@@ -90,6 +97,7 @@ GLOBAL_DEFINES += \
 	CONFIG_MULTICORE_SUPPORT=1 \
 	CONFIG_DEBUG_TIMESTAMP=1 \
 	CONFIG_ENABLE_WDT=1 \
+	CONFIG_WDT_SKIP_WDTCR=1 \
 	CONFIG_POWER_I2C_BPMPFW=1 \
 	CONFIG_ENABLE_DPAUX=1 \
 	CONFIG_ENABLE_XUSBF_UNCACHED_STRUCT=1 \
@@ -98,20 +106,25 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_SE=1 \
 	CONFIG_ENABLE_USBF_SNO=1 \
 	CONFIG_ENABLE_A_B_SLOT=1 \
+	CONFIG_ENABLE_A_B_UPDATE=1 \
 	CONFIG_ENABLE_PMIC_MAX77620=1 \
 	CONFIG_PAGE_SIZE_LOG2=16 \
 	CONFIG_ENABLE_GPCDMA=1 \
-	CONFIG_ENABLE_QSPI_FLASH_READ_ID=1 \
 	CONFIG_ENABLE_QSPI_QDDR_READ=1 \
 	CONFIG_ENABLE_XUSBF_SS=1 \
 	CONFIG_BOOT_PROFILER=1 \
-	CONFIG_ENABLE_DRAM_ECC=1
+	CONFIG_ENABLE_PLUGIN_MANAGER=1 \
+	CONFIG_DEBUG_LOGLEVEL=TEGRABL_LOG_INFO \
+	CONFIG_ENABLE_DRAM_ECC=1 \
+	CONFIG_VIC_SCRUB=1
 
 # Move optional CONFIG items into sub-make files
 ifeq ($(NV_BUILD_SYSTEM_TYPE),l4t)
-include $(LOCAL_DIR)/l4t.mk
+	include $(LOCAL_DIR)/l4t.mk
+else ifeq ($(NV_BUILD_SYSTEM_TYPE),mods)
+	include $(LOCAL_DIR)/l4t.mk
 else
-include $(LOCAL_DIR)/android.mk
+	include $(LOCAL_DIR)/android.mk
 endif
 
 GLOBAL_DEFINES += WITH_CPU_EARLY_INIT=1

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -11,6 +11,7 @@
 #define MODULE TEGRABL_ERR_NO_MODULE
 
 #include <debug.h>
+#include <tegrabl_ar_macro.h>
 #include <arch/arm64.h>
 #include <arch/mmu.h>
 #include <arch/ops.h>
@@ -26,7 +27,7 @@
 #include <tegrabl_mb1_bct.h>
 #include <tegrabl_mb1bct_lib.h>
 #include <tegrabl_brbct.h>
-#include <address_map_new.h>
+#include <tegrabl_addressmap.h>
 #include <arscratch.h>
 #include <tegrabl_cpubl_params.h>
 #include <tegrabl_carveout_usage.h>
@@ -45,10 +46,8 @@
 #include <tegrabl_clock.h>
 #include <tegrabl_module.h>
 #include <tegrabl_display.h>
-#include <address_map_new.h>
 #include <tegrabl_gpio.h>
 #include <tegrabl_tca9539_gpio.h>
-#include <tegrabl_parse_bmp.h>
 #include <tegrabl_mce.h>
 #include <tegrabl_devicetree.h>
 #include <tegrabl_board_info.h>
@@ -71,12 +70,15 @@
 #include <tegrabl_prevent_rollback.h>
 #include <tegrabl_qspi_flash.h>
 #include <tegrabl_gpcdma.h>
-#include <tegrabl_storage.h>
 #include <ratchet_update.h>
-#if defined(CONFIG_ENABLE_XUSBH)
-#include <tegrabl_usbh.h>
-#include <fastboot.h>
+#include <tegrabl_storage.h>
+#include <tegrabl_io.h>
+
+#if defined(CONFIG_ENABLE_SDCARD)
+#include <tegrabl_sd_param.h>
+#include <tegrabl_sd_bdev.h>
 #endif
+
 #define LOCAL_TRACE 0
 extern int __version_start;
 
@@ -108,9 +110,11 @@ struct mmio_mapping_info mmio_mappings[] = {
 	{ NV_ADDRESS_MAP_UARTE_BASE, NV_ADDRESS_MAP_UARTE_SIZE },
 	{ NV_ADDRESS_MAP_UARTF_BASE, NV_ADDRESS_MAP_UARTF_SIZE },
 	{ NV_ADDRESS_MAP_UARTG_BASE, NV_ADDRESS_MAP_UARTG_SIZE },
+	{ NV_ADDRESS_MAP_SDMMC1_BASE, NV_ADDRESS_MAP_SDMMC1_SIZE },
 	{ NV_ADDRESS_MAP_SDMMC4_BASE, NV_ADDRESS_MAP_SDMMC4_SIZE },
 	{ NV_ADDRESS_MAP_GPCDMA_BASE, NV_ADDRESS_MAP_GPCDMA_SIZE },
 	{ NV_ADDRESS_MAP_PADCTL_A5_BASE, NV_ADDRESS_MAP_PADCTL_A5_SIZE },
+	{ NV_ADDRESS_MAP_PADCTL_A13_BASE, NV_ADDRESS_MAP_PADCTL_A13_SIZE},
 	{ NV_ADDRESS_MAP_XUSB_DEV_BASE, NV_ADDRESS_MAP_XUSB_DEV_SIZE },
 	{ NV_ADDRESS_MAP_XUSB_PADCTL_BASE, NV_ADDRESS_MAP_XUSB_PADCTL_SIZE },
 	{ NV_ADDRESS_MAP_I2C1_BASE, NV_ADDRESS_MAP_I2C1_SIZE },
@@ -207,9 +211,12 @@ tegrabl_error_t cpubl_params_version_check(struct tboot_cpubl_params *params)
 status_t platform_early_init(void)
 {
 	status_t error;
-	enum carve_out_type carveout;
+	carve_out_type_t carveout;
 	/* IPC initialization to use BPMP for clk config*/
-	tegrabl_ipc_init();
+	error = tegrabl_ipc_init();
+	if (error != TEGRABL_NO_ERROR) {
+		goto fail;
+	}
 
 	if (boot_params == NULL) {
 		pr_critical("boot_param is null\n");
@@ -252,14 +259,30 @@ status_t platform_early_init(void)
 		goto fail;
 #endif
 
-	error = tegrabl_debug_init(boot_params->enable_log);
-	if ((error != TEGRABL_NO_ERROR) &&
-		(TEGRABL_ERROR_REASON(error) != TEGRABL_ERR_NOT_SUPPORTED))
-		goto fail;
+	if (boot_params->enable_log != 0) {
+
+		error = tegrabl_debug_init();
+		if (error != TEGRABL_NO_ERROR) {
+			goto fail;
+		}
+	} else {
+		tegrabl_debug_deinit();
+	}
 
 	pr_info("Welcome to Cboot\n");
 	pr_info("Cboot Version: %s\n", (char *) &__version_start);
 	pr_info("CPU-BL Params @ %p\n", boot_params);
+
+#if defined(CONFIG_ENABLE_DRAM_ECC)
+	if (cboot_dram_ecc_enabled() &&
+			(boot_params->global_data.disable_staged_scrub == 0)) {
+		error = cb_dram_ecc_scrub();
+		if (error != TEGRABL_NO_ERROR) {
+			pr_error("Failed to Scrub DRAM\n");
+			goto fail;
+		}
+	}
+#endif
 
 	for (carveout = 0; carveout < CARVEOUT_NUM; carveout++) {
 		pr_info("%2u) Base:0x%08"PRIx64" Size:0x%08"PRIx64"\n", carveout,
@@ -326,7 +349,10 @@ static void platform_disable_clocks(void)
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	/* -- Disable clocks not needed by kernel -- */
 	/* Disable SE clock */
-	tegrabl_car_clk_disable(TEGRABL_MODULE_SE, 0);
+	err = tegrabl_car_clk_disable(TEGRABL_MODULE_SE, 0);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Failed to disable SE clk\n");
+	}
 #if defined(CONFIG_ENABLE_UFS)
 		if (is_ufs_storage == true) {
 			odmdata = tegrabl_odmdata_get();
@@ -336,10 +362,10 @@ static void platform_disable_clocks(void)
 				err = tegrabl_ufs_change_gear(1);
 				if (err != TEGRABL_NO_ERROR)
 					pr_critical("pwm mode switch failed\n");
-				/* put the device in default state */
-				tegrabl_ufs_default_state();
-				tegrabl_ufs_clock_deinit();
 			}
+			/* put the device in default state */
+			tegrabl_ufs_default_state();
+			tegrabl_ufs_clock_deinit();
 		}
 #endif
 }
@@ -353,6 +379,9 @@ void platform_uninit(void)
 
 	platform_uninit_timer();
 	arch_disable_ints();
+#if defined(CONFIG_DYNAMIC_LOAD_ADDRESS)
+	tegrabl_dealloc_free_dram_region();
+#endif
 #if WITH_MMU
 	arch_disable_mmu();
 	tegrabl_mce_roc_cache_flush();
@@ -384,26 +413,157 @@ fail:
 	return err;
 }
 
-void platform_init(void)
+#if defined(CONFIG_ENABLE_SDCARD)
+static tegrabl_error_t get_gpio_driver_phandle_from_chipid(uint32_t chipid, uint32_t *out)
 {
+	tegrabl_error_t err;
+#if defined(CONFIG_ENABLE_GPIO_DT_BASED)
+	struct gpio_driver *gpio_drv = NULL;
+#endif
+
+	if (out == NULL) {
+		err = TEGRABL_ERR_INVALID;
+		goto done;
+	}
+
+#if defined(CONFIG_ENABLE_GPIO_DT_BASED)
+	err = tegrabl_gpio_driver_get(chipid, &gpio_drv);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Get gpio driver for chipid: %u failed: %u\n", chipid, err);
+		goto done;
+	}
+	*out = gpio_drv->phandle;
+#else
+	/*
+	 * phandle doesn't exist if DT is not enabled.
+	 * In that case, we won't use phandle at all so not fail here.
+	 */
+	err = TEGRABL_NO_ERROR;
+	*out = 0;
+#endif
+
+done:
+	return err;
+}
+#endif
+
+static tegrabl_error_t platform_storage_init(void)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	tegrabl_storage_type_t boot_device;
 	uint32_t instance;
-	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	struct tegrabl_mb1bct_device_params *dev_param = NULL;
-#if defined(CONFIG_DT_SUPPORT)
-	void *bl_dtb = NULL;
-#endif
-	struct board_id_info *id_info;
-	struct tegrabl_rollback *rb;
 	struct tegrabl_device *storage_devs = NULL;
-	bool hang_up = false;
-#if defined(CONFIG_ENABLE_XUSBH)
-	bool enter_fastboot = false;
+#if defined(CONFIG_ENABLE_SDCARD)
+	struct tegrabl_sd_platform_params sd_params;
 #endif
 
 	dev_param = (struct tegrabl_mb1bct_device_params *)(uintptr_t)
 					boot_params->dev_params_address;
-	TEGRABL_UNUSED(dev_param);
+#if defined(CONFIG_ENABLE_SDCARD)
+	if (boot_params->boot_from_sd) {
+		err = get_gpio_driver_phandle_from_chipid(TEGRA_GPIO_MAIN_CHIPID,
+						&sd_params.cd_gpio.handle);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_warn("Get gpio driver phandle failed: %u\n", err);
+		} else {
+			sd_params.vmmc_supply = 0;
+			sd_params.cd_gpio.pin = boot_params->cd_gpio;
+			sd_params.cd_gpio.flags = boot_params->cd_gpio_polarity;
+			sd_params.en_vdd_sd_gpio = 0;
+			sd_params.sd_instance = boot_params->sd_instance;
+
+			err = tegrabl_storage_init_dev(TEGRABL_STORAGE_SDCARD, sd_params.sd_instance,
+					dev_param, &sd_params, true, false);
+			if (err != TEGRABL_NO_ERROR)
+				pr_warn("Initialzing SD card failed! Will boot from other devices.\n");
+			else
+				return err;
+		}
+	}
+#endif
+
+	/* Get boot device */
+	err = tegrabl_soc_get_bootdev(&boot_device, &instance);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_critical("Failed to get boot device information\n");
+		goto fail;
+	}
+
+	if (boot_device == TEGRABL_STORAGE_QSPI_FLASH) {
+		dev_param->qspi.dma_type = DMA_GPC;
+	}
+
+	/* Initialize boot device */
+	err = tegrabl_storage_init_dev(boot_device, instance, dev_param, NULL, true, false);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Failed to initialize boot device\n");
+		goto fail;
+	}
+
+	/* Initialize available storage devices */
+	storage_devs = boot_params->storage_devices;
+
+	/* Storage devices info is added in version 5 of tboot_cpubl_params, hence
+	 * retain old storage initialization code to support previous versions.
+	 */
+	if ((boot_params->version < 5) || (storage_devs[0].type == 0)) {
+
+		pr_debug("Initialize storage devices as per old code because either "
+				 "tboot_cpubl_params version is less then 5 or storage info is "
+				 "not available\n");
+
+#if defined(CONFIG_ENABLE_EMMC)
+		if (boot_device == TEGRABL_STORAGE_QSPI_FLASH) {
+
+			err = tegrabl_storage_init_dev(TEGRABL_STORAGE_SDMMC_BOOT, 0,
+					dev_param, NULL, false, true);
+			if (err != TEGRABL_NO_ERROR) {
+				goto fail;
+			}
+		}
+#endif
+
+#if defined(CONFIG_ENABLE_UFS)
+		/* Initialize UFS only if odm data is available */
+		if (tegrabl_is_ufs_enable()) {
+
+			err = tegrabl_storage_init_dev(TEGRABL_STORAGE_UFS, 0,
+					dev_param, NULL, false, true);
+			if (err != TEGRABL_NO_ERROR) {
+				goto fail;
+			}
+		}
+#endif
+
+	} else {
+
+		/* Code to support version 5 */
+
+		err = tegrabl_storage_init_storage_devs(storage_devs, dev_param, boot_device, false, true);
+		if (err != TEGRABL_NO_ERROR) {
+			goto fail;
+		}
+
+		is_ufs_storage = tegrabl_storage_is_storage_enabled(storage_devs,
+										TEGRABL_STORAGE_UFS,
+										0);
+	}
+
+fail:
+	return err;
+}
+
+void platform_init(void)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+#if defined(CONFIG_DT_SUPPORT)
+	void *kernel_dtb = NULL;
+	void *bl_dtb = NULL;
+#endif
+	struct board_id_info *id_info;
+	struct tegrabl_rollback *rb;
+	bool hang_up = false;
 
 	tegrabl_profiler_record("Platform_init start", 0, DETAILED);
 
@@ -426,91 +586,6 @@ void platform_init(void)
 	if (err != TEGRABL_NO_ERROR)
 		goto fail;
 
-	tegrabl_blockdev_init();
-
-	/* Get boot device */
-	err = tegrabl_soc_get_bootdev(&boot_device, &instance);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_critical("Failed to get boot device information\n");
-		goto fail;
-	}
-
-	if (boot_device == TEGRABL_STORAGE_QSPI_FLASH) {
-		dev_param->qspi.dma_type = DMA_GPC;
-	}
-
-	/* Initialize boot device */
-	err = tegrabl_storage_init_dev(boot_device, instance, dev_param,
-								   SDMMC_INIT_REINIT, false);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Failed to initialize boot device\n");
-		goto fail;
-	}
-
-#if defined(CONFIG_ENABLE_DRAM_ECC)
-	if (cboot_dram_ecc_enabled() &&
-			(boot_params->global_data.disable_staged_scrub == 0)) {
-		err = cb_dram_ecc_scrub();
-		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Failed to Scrub DRAM\n");
-			goto fail;
-		}
-	}
-#endif
-
-	/* Initialize available storage devices */
-
-	storage_devs = boot_params->storage_devices;
-
-	/* Storage devices info is added in version 5 of tboot_cpubl_params, hence
-	 * retain old storage initialization code to support previous versions.
-	 */
-	if ((boot_params->version < 5) || (storage_devs[0].type == 0)) {
-
-		pr_debug("Initialize storage devices as per old code because either "
-				 "tboot_cpubl_params version is less then 5 or storage info is "
-				 "not available\n");
-
-#if defined(CONFIG_ENABLE_EMMC)
-		if (boot_device == TEGRABL_STORAGE_QSPI_FLASH) {
-
-			err = tegrabl_storage_init_dev(TEGRABL_STORAGE_SDMMC_BOOT, 0,
-										   dev_param, SDMMC_INIT, true);
-			if (err != TEGRABL_NO_ERROR) {
-				goto fail;
-			}
-		}
-#endif
-
-#if defined(CONFIG_ENABLE_UFS)
-		/* Initialize UFS only if odm data is available */
-		if (tegrabl_is_ufs_enable()) {
-
-			err = tegrabl_storage_init_dev(TEGRABL_STORAGE_UFS, 0, dev_param,
-										   SDMMC_INIT, true);
-			if (err != TEGRABL_NO_ERROR) {
-				goto fail;
-			}
-		}
-#endif
-
-	} else {
-
-		/* Code to support version 5 */
-
-		err = tegrabl_storage_init_storage_devs(storage_devs, dev_param,
-												boot_device, SDMMC_INIT, true);
-		if (err != TEGRABL_NO_ERROR) {
-			goto fail;
-		}
-
-		is_ufs_storage = tegrabl_storage_is_storage_enabled(storage_devs,
-										TEGRABL_STORAGE_UFS,
-										0);
-	}
-
-	tegrabl_profiler_record("Init storage devs", 0, DETAILED);
-
 #if defined(CONFIG_ENABLE_I2C)
 	tegrabl_i2c_register();
 
@@ -522,6 +597,36 @@ void platform_init(void)
 		goto fail;
 	}
 #endif
+
+#if defined(CONFIG_DT_SUPPORT)
+	/* BL-dtb loaded mb2 is signed with sigheader */
+	bl_dtb = (void *)boot_params->bl_dtb_load_address;
+	err = tegrabl_dt_set_fdt_handle(TEGRABL_DT_BL, bl_dtb);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Bl-dtb init failed\n");
+		goto fail;
+	}
+	pr_info("Bl_dtb @%p\n", bl_dtb);
+	tegrabl_profiler_record("DTB load", 0, DETAILED);
+#endif
+
+#if defined(CONFIG_ENABLE_GPIO)
+	gpio_framework_init();
+	err = tegrabl_gpio_driver_init();
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("GPIO driver init failed\n");
+		goto fail;
+	}
+	pr_info("GPIO framework and drivers are initialized.\n");
+#endif
+
+	tegrabl_blockdev_init();
+	err = platform_storage_init();
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Platform storage init failed: %d\n", err);
+		goto fail;
+	}
+	tegrabl_profiler_record("Init storage devs", 0, DETAILED);
 
 #if defined(CONFIG_ENABLE_PARTITION_MANAGER)
 	err = tegrabl_partition_manager_init();
@@ -537,18 +642,26 @@ void platform_init(void)
 		hang_up = true;
 		goto fail;
 	}
-
-#if defined(CONFIG_DT_SUPPORT)
-	/* BL-dtb loaded mb2 is signed with sigheader */
-	bl_dtb = (void *)boot_params->bl_dtb_load_address;
-	err = tegrabl_dt_set_fdt_handle(TEGRABL_DT_BL, bl_dtb);
+#if defined(CONFIG_DYNAMIC_LOAD_ADDRESS)
+	err = tegrabl_alloc_u_boot_top(BOOT_IMAGE_MAX_SIZE);
 	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Bl-dtb init failed\n");
+		pr_error("No memory for U-Boot to relocate\n");
 		goto fail;
 	}
-	pr_info("Bl_dtb @%p\n", bl_dtb);
+#endif
 
-	tegrabl_profiler_record("DTB load", 0, DETAILED);
+#if defined(CONFIG_DT_SUPPORT)
+	err = tegrabl_load_binary(TEGRABL_BINARY_KERNEL_DTB, &kernel_dtb, NULL);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Kernel-dtb loading failed\n");
+		goto fail;
+	}
+	err = tegrabl_dt_set_fdt_handle(TEGRABL_DT_KERNEL, kernel_dtb);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Kernel-dtb init failed\n");
+		goto fail;
+	}
+	pr_info("Kernel_dtb @%p\n", kernel_dtb);
 #endif
 
 #if defined(CONFIG_ENABLE_NCT)
@@ -562,12 +675,6 @@ void platform_init(void)
 #endif
 
 #if defined(CONFIG_ENABLE_GPIO)
-	gpio_framework_init();
-	err = tegrabl_gpio_driver_init();
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("GPIO driver init failed\n");
-		goto fail;
-	}
 	err = tegrabl_tca9539_init();
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("GPIO TCA9539 driver init failed\n");
@@ -579,33 +686,12 @@ void platform_init(void)
 	tegrabl_profiler_record("Init GPIO driver", 0, DETAILED);
 #endif
 
-#if defined(CONFIG_ENABLE_NVBLOB)
-	err = tegrabl_load_bmp_blob("BMP");
-	if (err != TEGRABL_NO_ERROR)
-		pr_warn("Loading bmp blob to memory failed\n");
-
-	tegrabl_profiler_record("Load BMP blob", 0, DETAILED);
-#endif
-
 	err = platform_init_power();
 	if (TEGRABL_NO_ERROR != err) {
 		pr_debug("power init failed\n");
 		goto fail;
 	}
-
 	tegrabl_profiler_record("Power init", 0, DETAILED);
-
-#if defined(CONFIG_ENABLE_XUSBH)
-	pr_info("init usb host\n");
-	if (check_enter_fastboot(&enter_fastboot) == TEGRABL_NO_ERROR) {
-		if (enter_fastboot == false) {
-			err = tegrabl_usbh_init();
-			if (err != TEGRABL_NO_ERROR) {
-				pr_warn("USB Host is not supported\n");
-			}
-		}
-	}
-#endif
 
 	/* TODO: Remove this hack, which skips display initialization for quill-pb
 	 * board as for now we don't have power rail configuration done for this
@@ -620,23 +706,30 @@ void platform_init(void)
 		goto fail;
 	}
 	err = tegrabl_get_board_ids(id_info);
-	tegrabl_profiler_record("Get board IDs", 0, DETAILED);
+	if (err == TEGRABL_NO_ERROR) {
+		pr_debug("board id = %s\n", (char *)id_info->part[0].part_no);
+		tegrabl_profiler_record("Get board IDs", 0, DETAILED);
 
 #if !defined(CONFIG_ENABLE_DP)
-	if (!strncmp((char *)id_info->part[0].part_no, "3301", 4))
-		goto fail; /*skip display*/
+		if (!strncmp((char *)id_info->part[0].part_no, "3301", 4))
+			goto skip_display; /*skip display*/
 #endif
-	if (!strncmp((char *)id_info->part[0].part_no, "4581", 4))
-		goto fail; /*skip display*/
+		if (!strncmp((char *)id_info->part[0].part_no, "4581", 4))
+			goto skip_display; /*skip display*/
+
+		if (!strcmp((char *)id_info->part[0].part_no, "3310-1000-B00-A"))
+			goto skip_display; /*skip display*/
+	}
 
 #if defined(CONFIG_ENABLE_DISPLAY)
 	err = tegrabl_display_init();
-	if (err != TEGRABL_NO_ERROR)
+	if (err != TEGRABL_NO_ERROR) {
 		pr_warn("display init failed\n");
-
+	}
 	tegrabl_profiler_record("Init display", 0, DETAILED);
 #endif
 
+skip_display:
 fail:
 	tegrabl_profiler_record("Platform_init end", 0, DETAILED);
 
@@ -647,11 +740,6 @@ fail:
 	}
 
 	return;
-}
-
-uint32_t platform_find_core_voltage(void)
-{
-	return 0;
 }
 
 status_t platform_init_heap(void)

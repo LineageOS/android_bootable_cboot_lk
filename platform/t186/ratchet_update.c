@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -12,9 +12,10 @@
 
 #include <tegrabl_debug.h>
 #include <tegrabl_fuse.h>
-#include <address_map_new.h>
+#include <tegrabl_addressmap.h>
 #include <arscratch.h>
 #include <storage_loader.h>
+#include <tegrabl_io.h>
 
 #define DPMU_BIT_WR                   (14)
 #define NV_DRF_BIT(x)                 (1 << (x))
@@ -119,8 +120,7 @@ static tegrabl_error_t update_mb1_ratchet_fuse(void)
 	err = sanity_check_ratchet_version(mb1_oem_sw_ver,
 												MB1_FIELD_RATCHET_BIT_LENGTH);
 	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Sanity checks on MB1 OEM ratchet failed, skip fuse "
-				 "burning\n");
+		pr_error("Sanity checks on MB1 OEM ratchet failed, skip fuse burning\n");
 		goto fail;
 	}
 
@@ -129,8 +129,7 @@ static tegrabl_error_t update_mb1_ratchet_fuse(void)
 		pr_error("MB1(%u) and SC7(%u) are not at the same ratchet "
 				 "version\n", do_thermometer_decoding(mb1_oem_sw_ver),
 				 do_thermometer_decoding(sc7_oem_sw_ver));
-		pr_error("Need to keep both of them to the latest ratchet "
-				 "version\n");
+		pr_error("Need to keep both of them to the latest ratchet version\n");
 		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID_VERSION, 0);
 		goto fail;
 	}
