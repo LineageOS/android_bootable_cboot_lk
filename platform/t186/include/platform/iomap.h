@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -8,30 +8,18 @@
  * license agreement from NVIDIA CORPORATION is strictly prohibited
  */
 
-#ifndef __PLATFORM_T132_IOMAP_H_
-#define __PLATFORM_T132_IOMAP_H_
+#ifndef __PLATFORM_T186_IOMAP_H_
+#define __PLATFORM_T186_IOMAP_H_
+
+#include <tegrabl_addressmap.h>
 
 /* Base Addresses of Nvidia modules */
-/* UART */
-#define	TEGRA_UARTA_BASE		0x70006000
-#define	TEGRA_UARTB_BASE		0x70006040
-#define	TEGRA_UARTC_BASE		0x70006200
-#define	TEGRA_UARTD_BASE		0x70006300
-#define	TEGRA_UARTE_BASE		0x70006400
+/* ARM GIC */
+#define T186_GICD_BASE	 (NV_ADDRESS_MAP_ARM_ICTLR_BASE)
 
-/* TIMER */
-#define	TEGRA_TIMERUS_BASE		0x60005010
-#define	TEGRA_TIMER0_BASE		0x60005000
-#define	TEGRA_TIMER1_BASE		0x60005008
+/* TOS params offset in MB1 BCT */
+#define CPUPARAMS_TOS_PARAMS_OFFSET	0x2448
+#define CPUPARAMS_TOS_START_OFFSET	0x2468
 
-/* PMC */
-#define	TEGRA_PMC_BASE			0x7000E400
-
-/* APB_MISC */
-#define APB_MISC_PA_BASE		0x70000000
-
-/* CLUSTER CLOCKS */
-#define CLUSTER_CLOCKS_PA_BASE	0x70040000
-
-#endif /* __PLATFORM_T132_IOMAP_H_ */
+#endif /* __PLATFORM_T186_IOMAP_H_ */
 

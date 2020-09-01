@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -25,7 +25,7 @@
 
 
 static tegrabl_error_t tegrabl_storage_get_bin_size(
-											enum tegrabl_binary_type bin_type,
+											tegrabl_binary_type_t bin_type,
 											const char *bin_name,
 											struct tegrabl_partition *partition,
 											uint32_t *image_size)
@@ -38,12 +38,23 @@ static tegrabl_error_t tegrabl_storage_get_bin_size(
 	void *buffer = NULL;
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 
+	if (partition == NULL) {
+		pr_error("NULL partition arg passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 2);
+		goto fail;
+	}
 
 	switch (bin_type) {
 
 	case TEGRABL_BINARY_SC7_RESUME_FW:
 
 		pr_debug("Get bin: (%s) size\n", bin_name);
+
+		if (partition->partition_info == NULL) {
+			pr_error("Invalid partition info\n");
+			err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 3);
+			goto fail;
+		}
 
 		block_dev = partition->block_device;
 		start_block = partition->partition_info->start_sector;
