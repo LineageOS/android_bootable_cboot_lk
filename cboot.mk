@@ -20,8 +20,8 @@ LOCAL_MODULE_CLASS  := EXECUTABLES
 
 _cboot_intermediates := $(call intermediates-dir-for,$(LOCAL_MODULE_CLASS),$(LOCAL_MODULE))
 
-LOCAL_BUILT_MODULE_STEM := build-$(_cboot_project)/lk.bin
-_cboot_lk_bin := $(_cboot_intermediates)/$(LOCAL_BUILT_MODULE_STEM)
+_out_bin := $(_cboot_intermediates)/build-$(_cboot_project)/lk.bin
+_cboot_lk_bin := $(_cboot_intermediates)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
 
 # Generate lk.bin with PRIVATE_CUSTOM_TOOL
 # Call make in lk directory
@@ -34,7 +34,7 @@ $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
 endif
 
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
-		BUILDROOT=$(_cboot_intermediates) \
+		BUILDROOT=../../../$(_cboot_intermediates) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
 		DEBUG=2 \
@@ -46,10 +46,10 @@ $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
 
 $(_cboot_lk_bin): PRIVATE_MODULE := $(LOCAL_MODULE)
 
-.PHONY: $(_cboot_lk_bin)
 $(_cboot_lk_bin):
 	@mkdir -p $(dir $@)
-	$(hide) +$(MAKE) $(PRIVATE_CUSTOM_TOOL_ARGS)
+	$(hide) +$(KERNEL_MAKE_CMD) $(PRIVATE_CUSTOM_TOOL_ARGS)
+	@cp $(_out_bin) $@
 
 include $(NVIDIA_BASE)
 include $(BUILD_SYSTEM)/base_rules.mk
