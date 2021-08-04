@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2021, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -15,6 +15,7 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_SDCARD=1 \
 	CONFIG_ENABLE_USB_MS=1 \
 	CONFIG_ENABLE_USB_SD_BOOT=1 \
+	CONFIG_ENABLE_NVME_BOOT=1 \
 	CONFIG_ENABLE_ETHERNET_BOOT=1 \
 	CONFIG_ENABLE_SECURE_BOOT=1 \
 	CONFIG_ENABLE_DISPLAY=1 \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2020, NVIDIA Corporation.	All Rights Reserved.
+ * Copyright (c) 2016-2021, NVIDIA Corporation.	All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -77,86 +77,6 @@ static tegrabl_error_t display_boot_logo(void)
 }
 #endif
 
-#if defined(CONFIG_ENABLE_L4T_RECOVERY)
-static struct tegrabl_kernel_bootctrl dummy_kernel_bootctrl = {
-	.magic_number = KERNEL_BOOTCTRL_MAGIC_NUMBER,
-	.mode = BOOT_TO_NORMAL_MODE,
-	.command = RECOVERY_CMD_NULL,
-	.version = KERNEL_BOOTCTRL_VERSION,
-	.crc32 = 0x1cd6a971,
-};
-
-static void tegrabl_get_kernel_bootctrl(
-		struct tegrabl_kernel_bootctrl *control)
-{
-	tegrabl_error_t err = TEGRABL_NO_ERROR;
-	void *kernel_bootctrl_load_addr;
-	uint32_t binary_length;
-	uint32_t crc32;
-	uint32_t bootctrl_exist;
-
-	if (!control) {
-		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
-		pr_error("Invalid passed-in control\n");
-		return;
-	}
-
-	err = tegrabl_load_binary_copy(TEGRABL_BINARY_KERNEL_BOOTCTRL,
-		&kernel_bootctrl_load_addr, &binary_length,
-		TEGRABL_BINARY_COPY_PRIMARY);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_warn("%s: failed to read primary bootctrl data\n",
-			__func__);
-		err = tegrabl_load_binary_copy(TEGRABL_BINARY_KERNEL_BOOTCTRL,
-			&kernel_bootctrl_load_addr, &binary_length,
-			TEGRABL_BINARY_COPY_RECOVERY);
-		if (err != TEGRABL_NO_ERROR) {
-			pr_warn("%s: failed to read recovery bootctrl data\n",
-				__func__);
-			bootctrl_exist = 0;
-		} else
-			bootctrl_exist = 1;
-	} else {
-		bootctrl_exist = 1;
-	}
-
-	if (bootctrl_exist) {
-		memcpy(control,
-			(struct tegrabl_kernel_bootctrl *)kernel_bootctrl_load_addr,
-			sizeof(struct tegrabl_kernel_bootctrl));
-		if (control->magic_number != KERNEL_BOOTCTRL_MAGIC_NUMBER) {
-			pr_warn("%s: magic number(0x%08x) is invalid\n",
-				__func__, control->magic_number);
-		} else if (control->version != KERNEL_BOOTCTRL_VERSION) {
-			pr_warn("%s: version(%u) is invalid\n",
-				__func__, control->version);
-		} else if (control->mode > BOOT_MODE_MAX) {
-			pr_warn("%s: boot mode(%u) is invalid\n",
-				__func__, control->mode);
-		} else if (control->command > RECOVERY_CMD_MAX) {
-			pr_warn("%s: recovery mode command(%u) is invalid\n",
-				__func__, control->command);
-		} else {
-			crc32 = tegrabl_utils_crc32(0, (char *)control,
-				sizeof(struct tegrabl_kernel_bootctrl) - sizeof(crc32));
-			if (crc32 != control->crc32) {
-				pr_warn("%s: crc32(0x%08x) != (0x%08x)\n",
-					__func__, crc32, control->crc32);
-			} else {
-				goto bootctrl_done;
-			}
-		}
-	}
-	pr_warn("%s: use default dummy boot control data\n", __func__);
-	memcpy(control, &dummy_kernel_bootctrl, sizeof(struct tegrabl_kernel_bootctrl));
-
-bootctrl_done:
-	pr_debug("%s: version=%u, mode=%u, command=%u\n",
-		__func__, control->version, control->mode,
-		control->command);
-}
-#endif
-
 tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 {
 	void *kernel_entry_point = NULL;
@@ -173,10 +93,6 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 #endif
 
 	kernel->load_from_storage = true;
-
-#if defined(CONFIG_ENABLE_L4T_RECOVERY)
-	tegrabl_get_kernel_bootctrl(&kernel->bootctrl);
-#endif
 
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
 						  &kernel_dtb, &callbacks, NULL, 0);

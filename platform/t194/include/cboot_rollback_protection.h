@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2021, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -19,5 +19,6 @@
 
 #define OEM_FW_RATCHET_IDX_KERNEL		(MB2_BINS_END + 1U)
 #define OEM_FW_RATCHET_IDX_KERNEL_DTB	(OEM_FW_RATCHET_IDX_KERNEL + 1U)
+#define OEM_FW_RATCHET_IDX_XUSB			(OEM_FW_RATCHET_IDX_KERNEL_DTB + 1U)
 
 #endif
