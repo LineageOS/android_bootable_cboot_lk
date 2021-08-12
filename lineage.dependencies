@@ -1,0 +1,14 @@
+[
+ {
+   "repository": "android_bootloader_cboot_common",
+   "target_path": "bootloader/cboot/common"
+ },
+ {
+   "repository": "android_bootloader_cboot_t18x",
+   "target_path": "bootloader/cboot/t18x"
+ },
+ {
+   "repository": "android_bootloader_cboot_t19x",
+   "target_path": "bootloader/cboot/t19x"
+ }
+]
