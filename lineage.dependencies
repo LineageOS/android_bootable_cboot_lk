@@ -1,0 +1,18 @@
+[
+ {
+   "repository": "android_bootable_cboot_common",
+   "target_path": "bootable/cboot/common"
+ },
+ {
+   "repository": "android_bootable_cboot_t18x",
+   "target_path": "bootable/cboot/t18x"
+ },
+ {
+   "repository": "android_bootable_cboot_t19x",
+   "target_path": "bootable/cboot/t19x"
+ },
+ {
+   "repository": "android_hardware_nvidia_hwinc",
+   "target_path": "hardware/nvidia/hwinc"
+ }
+]
