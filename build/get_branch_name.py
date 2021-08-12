@@ -14,12 +14,13 @@ import sys
 from xml.dom.minidom import parse
 
 top_dir =  os.environ['TOP']
-manifest_file = top_dir + '/.repo/manifest.xml'
+manifest_file = top_dir + '/.repo/manifests/default.xml'
 xml_tree = parse(manifest_file)
 collection = xml_tree.documentElement
 projects = collection.getElementsByTagName("default")
 
 for prj in projects:
-    if prj.getAttribute("remote") == "origin":
-        print prj.getAttribute("revision")
+    if prj.getAttribute("remote") == "github":
+        ver = prj.getAttribute("revision").split('-')[1].split('.')
+        print "%s.%s" % (ver[0].zfill(2), ver[1].zfill(2))
         break
