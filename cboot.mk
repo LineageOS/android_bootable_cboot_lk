@@ -34,6 +34,7 @@ $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
 endif
 
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
+		TOP=$(BUILD_TOP) \
 		BUILDROOT=../../../$(_cboot_intermediates) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
