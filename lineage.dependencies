@@ -10,5 +10,9 @@
  {
    "repository": "android_bootable_cboot_t19x",
    "target_path": "bootable/cboot/t19x"
+ },
+ {
+   "repository": "android_hardware_nvidia_hwinc",
+   "target_path": "hardware/nvidia/hwinc"
  }
 ]
