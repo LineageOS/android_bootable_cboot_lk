@@ -10,6 +10,7 @@
 # cboot: Compile the cboot kernel and generate cboot.bin
 
 LOCAL_PATH := $(call my-dir)
+_cboot_path := $(LOCAL_PATH)
 
 include $(NVIDIA_DEFAULTS)
 
@@ -25,21 +26,14 @@ _cboot_lk_bin := $(_cboot_intermediates)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
 
 # Generate lk.bin with PRIVATE_CUSTOM_TOOL
 # Call make in lk directory
-ifeq ($(TARGET_ARCH),arm64)
-$(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
-	TOOLCHAIN_PREFIX=$(abspath $(TARGET_TOOLS_PREFIX))
-else
-$(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS := \
-	TOOLCHAIN_PREFIX=$(ARM_EABI_TOOLCHAIN)/../../../aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-endif
-
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
 		TOP=$(BUILD_TOP) \
-		BUILDROOT=../../../$(_cboot_intermediates) \
+		TOOLCHAIN_PREFIX=$(KERNEL_TOOLCHAIN)/$(KERNEL_TOOLCHAIN_PREFIX) \
+		BUILDROOT=$(abspath $(_cboot_intermediates)) \
 		PROJECT=$(_cboot_project) \
 		NOECHO=$(hide) \
 		DEBUG=2 \
-		-C $(LOCAL_PATH)
+		-C $(_cboot_path)
 
 # Pass the PLATFORM_IS_AFTER_N value to cboot build
 $(_cboot_lk_bin): PRIVATE_CUSTOM_TOOL_ARGS += \
