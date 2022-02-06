@@ -133,50 +133,6 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 	return AVB_IO_RESULT_OK;
 }
 
-static AvbIOResult hash_salt_image(AvbOps *ops, const uint8_t *payload,
-								   size_t size, uint8_t *digest,
-								   const char *algorithm)
-{
-#if defined(IS_T186)
-	struct se_sha_input_params sha_input;
-	struct se_sha_context sha_context;
-#endif
-	tegrabl_error_t ret = TEGRABL_NO_ERROR;
-
-	TEGRABL_UNUSED(ops);
-	TEGRABL_ASSERT(payload);
-	TEGRABL_ASSERT(digest);
-
-#if defined(IS_T186)
-	/* Vbmeta hash algorithm: SHA256, SHA512 */
-	if (!strcmp(algorithm, "sha512")) {
-		sha_context.hash_algorithm = SE_SHAMODE_SHA512;
-	} else if (!strcmp(algorithm, "sha256")) {
-		sha_context.hash_algorithm = SE_SHAMODE_SHA256;
-	} else {
-		pr_error("Hash algorithm not supported: %s\n", algorithm);
-		return AVB_IO_RESULT_ERROR_IO;
-	}
-
-	sha_context.input_size = (uint32_t)size;
-	sha_input.block_addr = (uintptr_t)payload;
-	sha_input.block_size = (uint32_t)size;
-	sha_input.size_left = (uint32_t)size;
-	sha_input.hash_addr = (uintptr_t)digest;
-
-	ret = tegrabl_se_sha_process_payload(&sha_input, &sha_context);
-#else
-	TEGRABL_UNUSED(algorithm);
-	ret = tegrabl_crypto_compute_sha2((uint8_t *)payload, size, digest);
-#endif
-
-	if (ret != TEGRABL_NO_ERROR) {
-		return AVB_IO_RESULT_ERROR_IO;
-	}
-
-	return AVB_IO_RESULT_OK;
-}
-
 /* Compare the keys k1 and k2. They are both expected to be in little endian
  * format
  */
@@ -253,6 +209,9 @@ AvbIOResult get_size_of_partition(AvbOps* ops,
 	return AVB_IO_RESULT_OK;
 }
 
+#define MAX_NUMBER_OF_VBMETA_IMAGES 32
+struct public_key_data pub_keys[MAX_NUMBER_OF_VBMETA_IMAGES];
+
 bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 {
 	uint8_t i;
@@ -260,7 +219,7 @@ bool is_public_key_mismatch(AvbSlotVerifyData *slot_data)
 	/* Any public key set in AvbSlotVerifyData struct is mismatching the signing
 	 * key */
 	for (i = 0; i < slot_data->num_vbmeta_images; i++) {
-		if (slot_data->vbmeta_images[i].pub_key != NULL) {
+		if (pub_keys[i].pub_key != NULL) {
 			return true;
 		}
 	}
@@ -278,10 +237,12 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	AvbSlotVerifyResult avbres = AVB_SLOT_VERIFY_RESULT_OK;
+	AvbVBMetaVerifyResult vbmetares = AVB_VBMETA_VERIFY_RESULT_OK;
 	AvbOps ops;
 	const char *requested_partitions[] = {NULL};
 	bool unlocked;
 	char ab_suffix[BOOT_CHAIN_SUFFIX_LEN + 1];
+	uint8_t i;
 
 	/* Return early if already verified */
 	if (s_boot_state != VERIFIED_BOOT_UNKNOWN_STATE) {
@@ -296,7 +257,6 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 	/* Use libavb API to verify the boot */
 	ops.read_from_partition = read_from_partition;
 	ops.read_is_device_unlocked = is_device_unlocked;
-	ops.hash_salt_image = hash_salt_image;
 	ops.validate_vbmeta_public_key = validate_vbmeta_public_key;
 	ops.get_unique_guid_for_partition = get_unique_guid_for_partition;
 	ops.read_rollback_index = read_rollback_index;
@@ -318,6 +278,18 @@ status_t verified_boot_get_boot_state(boot_state_t *bs,
 							 unlocked,  /* allow_verification_error */
 							 AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
 							 slot_data);
+
+	if (*slot_data) {
+		for (i = 0; i < (*slot_data)->num_vbmeta_images; i++) {
+			vbmetares = avb_vbmeta_image_verify((*slot_data)->vbmeta_images[i].vbmeta_data,
+					(*slot_data)->vbmeta_images[i].vbmeta_size,
+					(const uint8_t**)&pub_keys[i].pub_key, &pub_keys[i].pub_key_size);
+			if (vbmetares != AVB_VBMETA_VERIFY_RESULT_OK)
+				pr_info("Verify vbmeta partition \"%s\" failed with %d\n",
+						(*slot_data)->vbmeta_images[i].partition_name,
+						vbmetares);
+		}
+	}
 
 	/**
 	 * Orange state:
@@ -388,12 +360,12 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 	if (slot_data != NULL) {
 		for (i = 0; i < slot_data->num_vbmeta_images; i++) {
 			if ((0 == strcmp(slot_data->vbmeta_images[i].partition_name, "boot")) &&
-				(slot_data->vbmeta_images[i].pub_key_size == VERITY_KEY_SIZE / 8)) {
-				memcpy(r_o_t_params.boot_pub_key, slot_data->vbmeta_images[i].pub_key,
+				(pub_keys[i].pub_key_size == VERITY_KEY_SIZE / 8)) {
+				memcpy(r_o_t_params.boot_pub_key, pub_keys[i].pub_key,
 					   VERITY_KEY_SIZE);
 			} else if ((0 == strcmp(slot_data->vbmeta_images[i].partition_name, "kernel-dtb")) &&
-					   (slot_data->vbmeta_images[i].pub_key_size == VERITY_KEY_SIZE / 8)) {
-				memcpy(r_o_t_params.dtb_pub_key, slot_data->vbmeta_images[i].pub_key,
+					   (pub_keys[i].pub_key_size == VERITY_KEY_SIZE / 8)) {
+				memcpy(r_o_t_params.dtb_pub_key, pub_keys[i].pub_key,
 					   VERITY_KEY_SIZE);
 			}
 		}

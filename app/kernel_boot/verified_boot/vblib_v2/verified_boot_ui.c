@@ -100,6 +100,8 @@ static status_t get_fingerprint(const uint8_t *pub_key,
 	return NO_ERROR;
 }
 
+extern struct public_key_data *pub_keys;
+
 status_t verified_boot_yellow_state_ui(AvbSlotVerifyData *slot_data)
 {
 	char *fingerprint[MAX_FINGERPRINT_NUM] = {NULL};
@@ -122,7 +124,7 @@ status_t verified_boot_yellow_state_ui(AvbSlotVerifyData *slot_data)
 	}
 
 	for (i = 0; i < num_fp; i++) {
-		pub_key = slot_data->vbmeta_images[i].pub_key;
+		pub_key = pub_keys[i].pub_key;
 		if (!pub_key) {
 			continue;
 		}

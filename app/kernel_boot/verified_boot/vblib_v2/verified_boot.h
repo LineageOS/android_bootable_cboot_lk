@@ -52,6 +52,11 @@ struct root_of_trust {
 	uint8_t verified_boot_state;
 };
 
+struct public_key_data {
+	const uint8_t pub_key[VERITY_KEY_SIZE];
+	size_t pub_key_size;
+};
+
 /**
  * @brief Get the boot state of the device. If the device is unlocked, boot in
  *		  orange state. Else, depending upon the integrity of vbmeta and
