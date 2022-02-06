@@ -107,9 +107,7 @@ status_t verified_boot_yellow_state_ui(AvbSlotVerifyData *slot_data)
 	status_t ret = NO_ERROR;
 	uint8_t num_fp;
 	uint8_t i;
-#if 0
 	const uint8_t *pub_key = NULL;
-#endif
 
 	TEGRABL_ASSERT(slot_data);
 
@@ -123,7 +121,6 @@ status_t verified_boot_yellow_state_ui(AvbSlotVerifyData *slot_data)
 		return ERR_NO_MEMORY;
 	}
 
-#if 0
 	for (i = 0; i < num_fp; i++) {
 		pub_key = slot_data->vbmeta_images[i].pub_key;
 		if (!pub_key) {
@@ -141,7 +138,6 @@ status_t verified_boot_yellow_state_ui(AvbSlotVerifyData *slot_data)
 					fingerprint[i]);
 		}
 	}
-#endif
 
 	yellow_state_menu_pause.menu_footer.ms.data = footer_str;
 	yellow_state_menu_continue.menu_footer.ms.data = footer_str;
