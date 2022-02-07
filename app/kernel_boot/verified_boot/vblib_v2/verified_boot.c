@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sm_err.h>
 #include <tegrabl_debug.h>
+#include <tegrabl_malloc.h>
 #include <tegrabl_odmdata_soc.h>
 #include <tegrabl_pkc_ops.h>
 #include <tegrabl_partition_manager.h>
@@ -136,9 +137,9 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 /* Compare the keys k1 and k2. They are both expected to be in little endian
  * format
  */
-static inline bool are_keys_identical(const uint8_t *k1, const uint8_t *k2)
+static inline bool are_keys_identical(const uint8_t *k1, const uint8_t *k2, size_t size)
 {
-	return !memcmp(k1, k2, VERITY_KEY_SIZE);
+	return !memcmp(k1, k2, size);
 }
 
 static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
@@ -150,11 +151,16 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	uint8_t bct_key_mod[VERITY_KEY_SIZE];
+	uint8_t *user_key;
+	struct tegrabl_partition part;
 
 	TEGRABL_UNUSED(pub_key_metadata);
 	TEGRABL_UNUSED(pub_key_metadata_len);
 	TEGRABL_ASSERT(pub_key);
 	TEGRABL_ASSERT(pub_key_len);
+
+	/* Default trusted to false */
+	*out_is_trusted = false;
 
 	/* Get public key from BCT */
 	err = tegrabl_pkc_modulus_get(bct_key_mod);
@@ -163,13 +169,25 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 		return AVB_IO_RESULT_ERROR_IO;
 	}
 
-	if ((pub_key_len != VERITY_KEY_SIZE) ||
-		!are_keys_identical(bct_key_mod, pub_key)) {
-		*out_is_trusted = false;
+	if ((pub_key_len == VERITY_KEY_SIZE) &&
+		are_keys_identical(bct_key_mod, pub_key, VERITY_KEY_SIZE)) {
+		*out_is_trusted = true;
 		return AVB_IO_RESULT_OK;
 	}
 
-	*out_is_trusted = true;
+	/* Check public key in user root of trust */
+	if (tegrabl_partition_open("avb_custom_key", &part) == TEGRABL_NO_ERROR &&
+			tegrabl_partition_size(&part) >= pub_key_len) {
+		user_key = tegrabl_malloc(pub_key_len);
+		if (tegrabl_partition_read(&part, (void*)user_key, pub_key_len) == TEGRABL_NO_ERROR &&
+				are_keys_identical(user_key, pub_key, pub_key_len)) {
+			pr_error("Using user root of trust\n");
+			*out_is_trusted = true;
+		}
+		tegrabl_partition_close(&part);
+		tegrabl_free(user_key);
+	}
+
 	return AVB_IO_RESULT_OK;
 }
 
