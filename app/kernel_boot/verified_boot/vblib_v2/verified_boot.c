@@ -393,7 +393,6 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 	if (ret != NO_ERROR) {
 		pr_error("Failed to pass verified boot params: %x\n", ret);
 		err = TEGRABL_ERROR(TEGRABL_ERR_COMMAND_FAILED, 0);
-		goto fail;
 	}
 
 	bs_str = (bs == VERIFIED_BOOT_RED_STATE) ? "red" :
