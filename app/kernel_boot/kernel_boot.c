@@ -200,7 +200,7 @@ static status_t kernel_boot(void)
 #endif
 
 #if defined(CONFIG_ENABLE_DISPLAY) && defined(CONFIG_ENABLE_NVBLOB)
-	err = tegrabl_load_bmp_blob("BMP");
+	err = tegrabl_load_bmp_blob("bootlogo");
 	if (err != TEGRABL_NO_ERROR)
 		pr_warn("Loading bmp blob to memory failed\n");
 
