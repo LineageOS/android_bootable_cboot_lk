@@ -65,6 +65,9 @@ GLOBAL_CFLAGS += -Werror
 # TEMPORARY until dislay code static initializer issues are dealt with
 GLOBAL_CFLAGS += -Wno-missing-field-initializers
 
+# GCC 9.3 does not like cboot boot_params alignment
+GLOBAL_CFLAGS += -Wno-error=address-of-packed-member
+
 GLOBAL_CPPFLAGS := -fno-exceptions -fno-rtti -fno-threadsafe-statics
 #GLOBAL_CPPFLAGS += -Weffc++
 GLOBAL_ASMFLAGS := -DASSEMBLY
