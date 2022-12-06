@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2018-2022, NVIDIA Corporation.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -130,7 +130,11 @@ recv(void *a, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t 
     switch (opcode) {
 
     case TFTP_DATA:
-        if ((u16_t)p->len == 0U) {
+        /*
+         * Buffer length must be greater than TFTP header length otherwise actual data length (data_len_bytes)
+         * will be < 0
+         */
+        if (((u16_t)p->len == 0U) || ((u16_t)p->len <= TFTP_HEADER_LENGTH)) {
             goto fail;
         }
 
@@ -150,18 +154,21 @@ recv(void *a, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t 
         tftp_client.exptd_blk++;
         tftp_client.last_rcvd_blk = blk_num;
 
-        /* Copy data to RAM */
+        /* Calculate dst, src addr and data length to copy */
         data_len_bytes = (u16_t)p->len - TFTP_HEADER_LENGTH;
         ram_addr = (u8_t *)tftp_client.dst_mem_addr + tftp_client.tot_data_cnt_bytes;
         data_ptr = (u8_t *)p->payload + TFTP_HEADER_LENGTH;
-        memcpy((void *)ram_addr, (void *)data_ptr, data_len_bytes);
 
+        /* Sanity check if total data length is exceeding destination size */
         tftp_client.tot_data_cnt_bytes = tftp_client.tot_data_cnt_bytes + data_len_bytes;
         if (tftp_client.tot_data_cnt_bytes > tftp_client.dst_size) {
             LWIP_DEBUGF(TFTP_DEBUG | LWIP_DBG_STATE,
                         ("%s Destination size is smaller than the rcvd file size\n", prefix_str));
             goto fail;
         }
+
+        /* Copy data to RAM after ensuring destination size is sufficient */
+        memcpy((void *)ram_addr, (void *)data_ptr, data_len_bytes);
 
         if (data_len_bytes < TFTP_MAX_PAYLOAD_SIZE_BYTES) {
             tftp_client.is_file_rcvd = true;
