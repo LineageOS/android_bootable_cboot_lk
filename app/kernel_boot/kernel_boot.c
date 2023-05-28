@@ -27,7 +27,9 @@
 #include <platform.h>
 #include <boot.h>
 #include <linux_load.h>
+#if defined(CONFIG_ENABLE_VERIFIED_BOOT)
 #include <verified_boot.h>
+#endif
 #include <tegrabl_parse_bmp.h>
 #include <tegrabl_wdt.h>
 #include <tegrabl_display.h>
