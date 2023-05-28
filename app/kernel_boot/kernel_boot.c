@@ -97,6 +97,7 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
 						  &kernel_dtb, &callbacks, NULL, 0);
 
+#if defined(CONFIG_ENABLE_A_B_SLOT)
 	/*
 	 * Update smd if a/b retry counter changed
 	 * The slot priorities are rotated here too,
@@ -110,6 +111,7 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 		tegrabl_reset();
 		return err;
 	}
+#endif	// ENABLE_A_B_SLOT
 #if defined(CONFIG_OS_IS_ANDROID)
 	tegrabl_send_tos_param();
 #endif
