@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2021, NVIDIA Corporation.	All Rights Reserved.
+ * Copyright (c) 2016-2022, NVIDIA Corporation.	All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -51,7 +51,7 @@
 
 #define LOCAL_TRACE 0
 
-#if defined(CONFIG_ENABLE_DISPLAY)
+#if defined(CONFIG_ENABLE_DISPLAY) && defined(CONFIG_ENABLE_NVBLOB)
 static tegrabl_error_t display_boot_logo(void)
 {
 	struct tegrabl_image_info image;
@@ -110,12 +110,11 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 		tegrabl_reset();
 		return err;
 	}
-
 #if defined(CONFIG_OS_IS_ANDROID)
 	tegrabl_send_tos_param();
 #endif
 
-#if defined(CONFIG_ENABLE_DISPLAY)
+#if defined(CONFIG_ENABLE_DISPLAY) && defined(CONFIG_ENABLE_NVBLOB)
 	err = display_boot_logo();
 	if (err != TEGRABL_NO_ERROR)
 		pr_warn("Boot logo display failed...\n");
