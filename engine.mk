@@ -52,7 +52,7 @@ GLOBAL_CFLAGS := --std=gnu99 -Werror-implicit-function-declaration -Wstrict-prot
 GLOBAL_CFLAGS += -Werror=strict-prototypes -Werror=unused-label -Werror=int-to-pointer-cast -Werror=address
 GLOBAL_CFLAGS += -Werror=array-bounds -Werror=char-subscripts -Werror=enum-compare
 GLOBAL_CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration -Werror=comment
-GLOBAL_CFLAGS += -Werror=main -Werror=missing-braces -Werror=nonnull -Werror=reorder -Werror=return-type
+GLOBAL_CFLAGS += -Werror=main -Werror=missing-braces -Werror=nonnull -Werror=return-type
 GLOBAL_CFLAGS += -Werror=sequence-point -Werror=switch -Werror=trigraphs -Werror=unknown-pragmas
 GLOBAL_CFLAGS += -Werror=volatile-register-var -Werror=unused-variable -Werror=unused-value -Werror=empty-body
 GLOBAL_CFLAGS += -Werror=type-limits -Werror=format-extra-args -Werror=unused-but-set-variable -Werror=overflow
