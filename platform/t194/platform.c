@@ -17,7 +17,7 @@
 #include <arch/mmu.h>
 #include <arch/ops.h>
 #include <string.h>
-#include <console.h>
+#include <lib/console.h>
 #include <err.h>
 #include <tegrabl_debug.h>
 #include <tegrabl_console.h>

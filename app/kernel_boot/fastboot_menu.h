@@ -11,7 +11,7 @@
 #ifndef __FASTBOOT_MENU_H__
 #define __FASTBOOT_MENU_H__
 
-#include <menu.h>
+#include <lib/menu.h>
 
 extern struct menu fastboot_menu;
 extern struct menu confirm_lock_menu;

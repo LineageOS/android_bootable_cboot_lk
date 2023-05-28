@@ -11,7 +11,7 @@
 #include <verified_boot_ui.h>
 #include <mincrypt/sha256.h>
 #include <menu_data.h>
-#include <menu.h>
+#include <lib/menu.h>
 #include <err.h>
 #include <sys/types.h>
 #include <string.h>

@@ -15,7 +15,7 @@
 #include <tegrabl_utils.h>
 #include <tegrabl_keyboard.h>
 #include <tegrabl_timer.h>
-#include <menu.h>
+#include <lib/menu.h>
 #include <err.h>
 #include <fastboot.h>
 #include <string.h>

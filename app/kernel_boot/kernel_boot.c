@@ -35,7 +35,7 @@
 #include <tegrabl_display.h>
 #include <tegrabl_devicetree.h>
 #include <tegrabl_exit.h>
-#include <menu.h>
+#include <lib/menu.h>
 #include <tegrabl_a_b_boot_control.h>
 #if defined(CONFIG_OS_IS_ANDROID)
 #include <tos_param.h>
