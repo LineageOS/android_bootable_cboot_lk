@@ -35,6 +35,7 @@ GLOBAL_INCLUDES += \
 	../t18x/common/include/drivers \
 	../t18x/common/include/drivers/display
 
+ifeq ($(CONFIG_ENABLE_VERIFIED_BOOT),1)
 ifeq ($(PLATFORM_IS_AFTER_N),1)
 # verified boot 2.0
 MODULE_DEPS += $(LOCAL_DIR)/verified_boot/vblib_v2
@@ -42,6 +43,7 @@ GLOBAL_INCLUDES += $(LOCAL_DIR)/verified_boot/vblib_v2
 else
 MODULE_DEPS += $(LOCAL_DIR)/verified_boot/vblib_v1
 GLOBAL_INCLUDES += $(LOCAL_DIR)/verified_boot/vblib_v1
+endif
 endif
 
 MODULE_SRCS += \
