@@ -420,6 +420,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 
 	pr_info("Verified boot state = %s\n", bs_str);
 
+#if defined(CONFIG_ENABLE_VERIFIED_BOOT)
 	if ((slot_data != NULL) && (slot_data->cmdline != NULL)) {
 		err = tegrabl_linuxboot_set_vbmeta_info(slot_data->cmdline);
 		if (err != TEGRABL_NO_ERROR) {
@@ -432,6 +433,7 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 			goto fail;
 		}
 	}
+#endif
 
 	if (bs != VERIFIED_BOOT_GREEN_STATE) {
 		verified_boot_ui(bs, slot_data);
@@ -443,6 +445,8 @@ tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
 		err = tegrabl_reset();
 	}
 
+#if defined(CONFIG_ENABLE_VERIFIED_BOOT)
 fail:
+#endif
 	return err;
 }
