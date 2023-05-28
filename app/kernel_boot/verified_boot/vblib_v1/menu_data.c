@@ -8,7 +8,7 @@
  * is strictly prohibited.
  */
 
-#include <menu.h>
+#include <lib/menu.h>
 
 /* Hidden 'Continue' item */
 static struct menu_entry continue_menu_entry[] = {

@@ -11,7 +11,7 @@
 #ifndef __ANDROID_BOOT_MENU_H__
 #define __ANDROID_BOOT_MENU_H__
 
-#include <menu.h>
+#include <lib/menu.h>
 
 extern struct menu android_menu;
 
