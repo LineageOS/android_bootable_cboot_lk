@@ -620,6 +620,7 @@ void platform_init(void)
 		pr_error("GPIO driver init failed\n");
 		goto fail;
 	}
+#if defined(CONFIG_ENABLE_GPIO_TCA9539)
 	err = tegrabl_tca9539_init();
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("GPIO TCA9539 driver init failed\n");
@@ -628,6 +629,7 @@ void platform_init(void)
 		 * goto fail;
 		 */
 	}
+#endif
 #endif
 
 	err = platform_init_power();
