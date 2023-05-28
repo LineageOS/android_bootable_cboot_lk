@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2022, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -553,7 +553,9 @@ void platform_init(void)
 #if defined(CONFIG_DT_SUPPORT)
 	void *bl_dtb = NULL;
 #endif
+#if defined(CONFIG_ENABLE_CBO_FILE)
 	bool is_cbo_read = true;
+#endif
 	bool hang_up = false;
 
 #if defined(CONFIG_ENABLE_STAGED_SCRUBBING)
@@ -669,6 +671,7 @@ void platform_init(void)
 	}
 #endif
 
+#if defined(CONFIG_ENABLE_CBO_FILE)
 	pr_info("Load in CBoot Boot Options partition and parse it\n");
 	err = tegrabl_read_cbo(CBO_PARTITION);
 	if (err != TEGRABL_NO_ERROR) {
@@ -677,6 +680,7 @@ void platform_init(void)
 	}
 
 	(void)tegrabl_cbo_parse_info(is_cbo_read);
+#endif
 
 #if defined(CONFIG_ENABLE_SHELL)
 	enter_shell_upon_user_request();
