@@ -94,6 +94,11 @@ static bool is_comb_uart_initialized = false;
 #define LOCAL_TRACE 0
 extern int __version_start;
 
+#ifdef CONFIG_ENABLE_NVDISP_INIT
+extern int _start;
+uintptr_t uefi_start;
+#endif
+
 extern int _end;
 struct tboot_cpubl_params *boot_params;
 
@@ -347,8 +352,13 @@ status_t platform_early_init(void)
 	}
 
 
+#if defined(CONFIG_ENABLE_NVDISP_INIT)
+	pr_info("Welcome to NVDisp-Init\n");
+	pr_info("NVDisp-Init version: %s\n", (char *) &__version_start);
+#else
 	pr_info("Welcome to Cboot\n");
 	pr_info("Cboot Version: %s\n", (char *) &__version_start);
+#endif
 	pr_info("CPU-BL Params @ %p\n", boot_params);
 
 	for (carveout = 0; carveout < CARVEOUT_NUM; carveout++) {
@@ -702,6 +712,14 @@ status_t platform_init_heap(void)
 	size_t heap_size;
 
 	heap_start = (uintptr_t)&_end;
+
+#ifdef CONFIG_ENABLE_NVDISP_INIT
+	pr_debug("_start=0x%zx\n", (uintptr_t)&_start);
+	uefi_start = (uintptr_t)&_start + CONFIG_NVDISP_SIZE;
+	pr_debug("uefi_start=0x%zx\n", (uintptr_t)uefi_start);
+	heap_start = uefi_start + CONFIG_NVDISP_UEFI_SIZE;
+#endif
+
 	heap_end = boot_params->cpubl_carveout_safe_end_offset;
 	heap_size = heap_end - heap_start;
 
