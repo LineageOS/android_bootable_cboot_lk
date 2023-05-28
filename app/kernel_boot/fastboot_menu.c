@@ -13,7 +13,7 @@
 #include <tegrabl_error.h>
 #include <tegrabl_soc_misc.h>
 #include <tegrabl_exit.h>
-#include <menu.h>
+#include <lib/menu.h>
 #include <linux_load.h>
 #include <boot.h>
 #include <fastboot.h>
