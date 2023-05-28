@@ -79,12 +79,18 @@ static tegrabl_error_t display_boot_logo(void)
 }
 #endif
 
+#ifdef CONFIG_ENABLE_NVDISP_INIT
+// Start of UEFI code in combo nvdisp-init+UEFI binary
+extern uintptr_t uefi_start;
+#endif
+
 tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 {
 	void *kernel_entry_point = NULL;
 	void *kernel_dtb = NULL;
 	void (*kernel_entry)(uint64_t x0, uint64_t x1, uint64_t x2,
 						 uint64_t x3);
+#if !defined(CONFIG_ENABLE_NVDISP_INIT)
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	struct tegrabl_kernel_load_callbacks callbacks;
 
@@ -98,6 +104,7 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
 						  &kernel_dtb, &callbacks, NULL, 0);
+#endif
 
 #if defined(CONFIG_ENABLE_A_B_SLOT)
 	/*
@@ -128,7 +135,13 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	tegrabl_profiler_record("kernel_boot exit", 0, DETAILED);
 #endif
 
+#ifdef CONFIG_ENABLE_NVDISP_INIT
+	// After boot logo, jump to UEFI binary entry point
+	kernel_entry_point = (void *)uefi_start;
+	pr_info("%s: Jumping to UEFI @ %p ...\n", __func__, kernel_entry_point);
+#else
 	pr_info("Kernel EP: %p, DTB: %p\n", kernel_entry_point, kernel_dtb);
+#endif
 
 	platform_uninit();
 
