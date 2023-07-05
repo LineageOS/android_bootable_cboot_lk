@@ -62,6 +62,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../common/drivers/usb/storage \
 	$(LOCAL_DIR)/../../../common/drivers/pcie \
 	$(LOCAL_DIR)/../../../common/drivers/nvme \
+	$(LOCAL_DIR)/../../../common/drivers/smmuv2 \
 	$(LOCAL_DIR)/../../../common/lib/eeprom_manager \
 	$(LOCAL_DIR)/../../../common/arch/arm64 \
 	$(LOCAL_DIR)/../../../t18x/common/lib/mce \
