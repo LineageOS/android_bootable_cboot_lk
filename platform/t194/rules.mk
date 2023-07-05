@@ -53,6 +53,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../common/drivers/qspi_flash \
 	$(LOCAL_DIR)/../../../common/drivers/i2c \
 	$(LOCAL_DIR)/../../../common/drivers/i2c_dev \
+	$(LOCAL_DIR)/../../../common/drivers/smmuv2 \
 	$(LOCAL_DIR)/../../../common/arch/arm64 \
 	$(LOCAL_DIR)/../../../t18x/common/lib/mce \
 	$(LOCAL_DIR)/../../../common/lib/psci \
