@@ -44,6 +44,8 @@ MODULE_DEPS += $(LOCAL_DIR)/verified_boot/vblib_v1
 GLOBAL_INCLUDES += $(LOCAL_DIR)/verified_boot/vblib_v1
 endif
 
+MODULE_CFLAGS := -Wno-error=format
+
 MODULE_SRCS += \
 	$(LOCAL_DIR)/kernel_boot.c \
 	$(LOCAL_DIR)/fastboot_a_b.c \
