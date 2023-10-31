@@ -43,7 +43,7 @@ BUILDDIR := $(BUILDROOT)/build-$(PROJECT)
 OUTBIN := $(BUILDDIR)/lk.bin
 OUTELF := $(BUILDDIR)/lk.elf
 CONFIGHEADER := $(BUILDDIR)/build_config.h
-APPEND_VERSION := $(LKROOT)/scripts/add_version_info.py
+APPEND_VERSION := python2 $(LKROOT)/scripts/add_version_info.py
 
 GLOBAL_INCLUDES := $(BUILDDIR) $(LKROOT)/include $(addsuffix /include,$(LKINC))
 GLOBAL_OPTFLAGS ?= -Os
