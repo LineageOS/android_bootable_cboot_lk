@@ -22,11 +22,6 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_SDCARD=1 \
 	CONFIG_ENABLE_USB_MS=1
 
-ifeq ($(PLATFORM_IS_AFTER_N),1)
-GLOBAL_DEFINES += \
-       CONFIG_ENABLE_SYSTEM_AS_ROOT=1
-endif
-
 MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../common/lib/nct \
 	$(LOCAL_DIR)/../../../common/lib/tos

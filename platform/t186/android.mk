@@ -20,11 +20,6 @@ GLOBAL_DEFINES += \
 	CONFIG_ENABLE_DTB_OVERLAY=1 \
 	CONFIG_ENABLE_FASTBOOT=1
 
-ifeq ($(PLATFORM_IS_AFTER_N),1)
-GLOBAL_DEFINES += \
-       CONFIG_ENABLE_SYSTEM_AS_ROOT=1
-endif
-
 MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../common/lib/nct \
 	$(LOCAL_DIR)/../../../common/lib/tos
