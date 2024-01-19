@@ -119,8 +119,8 @@ void platform_init_interrupts(void)
     for (i = 0; i < ((spi_lines / 32) + 1); i++)
         GICD_WRITE(GICD_ICENABLE + (i * 4),0xFFFFFFFF);
 
-	cpu_num = arm64_get_cpu_idx();
-	dprintf(SPEW, "GIC-SPI Target CPU: %u\n", cpu_num);
+    cpu_num = arm64_get_cpu_idx();
+    dprintf(SPEW, "GIC-SPI Target CPU: %u\n", cpu_num);
 
     cpu_num = 1 << cpu_num;
     cpu_num = ((cpu_num << 24) | (cpu_num << 16) | (cpu_num << 8) | cpu_num);
