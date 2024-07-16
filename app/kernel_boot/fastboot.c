@@ -96,7 +96,7 @@ static bool is_in_ota_progress(void)
 }
 #endif
 
-static tegrabl_error_t is_fastboot_gpio_long_pressed(bool *is_long_press)
+static tegrabl_error_t is_fastboot_gpio_pressed(bool *is_pressed)
 {
 	uint32_t sampling_delay;
 	uint32_t i;
@@ -118,20 +118,24 @@ static tegrabl_error_t is_fastboot_gpio_long_pressed(bool *is_long_press)
 			TEGRABL_SET_HIGHEST_MODULE(ret);
 			return ret;
 		}
+		/* if Volume Down key is pressed, immediately enter fastboot */
+		if (key_code == KEY_DOWN && key_event == KEY_PRESS_FLAG) {
+			break;
+		}
 		/* if POWER key is not pressed or released, return false */
 		if (key_code != KEY_ENTER && key_code != KEY_HOLD) {
-			*is_long_press = false;
+			*is_pressed = false;
 			return TEGRABL_NO_ERROR;
 		}
 		if (key_event != KEY_PRESS_FLAG) {
-			*is_long_press = false;
+			*is_pressed = false;
 			return TEGRABL_NO_ERROR;
 		}
 		tegrabl_mdelay(sampling_delay);
 	}
 
-	pr_info("Power button long press detected\n");
-	*is_long_press = true;
+	pr_info("Button press detected\n");
+	*is_pressed = true;
 
 	return TEGRABL_NO_ERROR;
 }
@@ -168,7 +172,7 @@ tegrabl_error_t check_enter_fastboot(bool *out)
 	}
 
 	/* check fastboot gpio long press */
-	ret = is_fastboot_gpio_long_pressed(out);
+	ret = is_fastboot_gpio_pressed(out);
 
 done:
 	return ret;
