@@ -103,7 +103,7 @@ uint32_t smc_call(uint32_t arg0, uintptr_t arg1, uintptr_t arg2);
  * @return NO_ERROR if all process is successfully, else apt error
  */
 
-tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
+tegrabl_error_t verify_boot(tegrabl_bootimg_header *hdr,
 							void *kernel_dtb, void *kernel_dtbo);
 
 #endif

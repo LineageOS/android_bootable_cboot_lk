@@ -348,7 +348,7 @@ status_t verified_boot_ui(boot_state_t bs, AvbSlotVerifyData *slot_data)
 	}
 }
 
-tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
+tegrabl_error_t verify_boot(tegrabl_bootimg_header *hdr,
 							void *kernel_dtb, void *kernel_dtbo)
 {
 	status_t ret = NO_ERROR;

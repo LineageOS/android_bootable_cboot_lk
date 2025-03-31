@@ -15,10 +15,6 @@
 #include <tegrabl_error.h>
 #include <linux_load.h>
 
-#define ANDROID_MAGIC				"ANDROID!"
-#define ANDROID_MAGIC_SIZE			8
-#define ANDROID_BOOT_NAME_SIZE		16
-#define ANDROID_BOOT_CMDLINE_SIZE	512
 #define IGNORE_FASTBOOT_CMD			"ignorefastboot"
 
 #define ZIMAGE_START_OFFSET			(0x80000UL)		/* @ 0.5 MB. */
@@ -29,30 +25,6 @@
 #define FDT_SIZE_BL_DT_NODES		(256 * 1024)     /* @ 256KB */
 
 #define COMMAND_LINE_SIZE			1024
-
-/**
- * Header fields of android image(boot.img)
- */
-typedef struct {
-	uint8_t magic[ANDROID_MAGIC_SIZE];
-	uint32_t kernel_size;
-	uint32_t kernel_addr;
-
-	uint32_t ramdisk_size;
-	uint32_t ramdisk_addr;
-
-	uint32_t second_size;
-	uint32_t second_addr;
-
-	uint32_t tags_addr;
-	uint32_t page_size;
-	uint32_t unused[2];
-
-	uint8_t name[ANDROID_BOOT_NAME_SIZE];
-	uint8_t cmdline[ANDROID_BOOT_CMDLINE_SIZE];
-
-	uint32_t id[8];
-} android_boot_img;
 
 /* macro debug console port */
 	/* Debug console is undefined. */

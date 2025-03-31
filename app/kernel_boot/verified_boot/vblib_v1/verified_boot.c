@@ -183,7 +183,7 @@ static inline bool are_keys_identical(uint8_t *k1, uint8_t *k2)
 }
 
 /* Refer $TOP/system/core/mkbootimg/bootimg.h for android boot image layout */
-static inline uint32_t total_boot_pages(union tegrabl_bootimg_header *hdr)
+static inline uint32_t total_boot_pages(tegrabl_bootimg_header *hdr)
 {
 	uint32_t kernel_pages, ramdisk_pages, second_pages, header_pages;
 
@@ -367,7 +367,7 @@ out:
 static bool s_boot_image_verified;
 static boot_state_t s_boot_state; /* Possible values: red/yellow/green */
 
-status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
+status_t verified_boot_get_boot_state(tegrabl_bootimg_header *hdr,
 									  void *kernel_dtb, boot_state_t *bs,
 									  struct rsa_public_key *boot_pub_key,
 									  struct rsa_public_key *dtb_pub_key)
@@ -436,7 +436,7 @@ status_t verified_boot_ui(boot_state_t bs,
 	}
 }
 
-tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
+tegrabl_error_t verify_boot(tegrabl_bootimg_header *hdr,
 							void *kernel_dtb, void *kernel_dtbo)
 {
 	status_t ret = NO_ERROR;

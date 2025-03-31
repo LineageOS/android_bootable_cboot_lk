@@ -71,7 +71,7 @@ struct root_of_trust {
  *
  * @return NO_ERROR if boot state is conclusively determined, else apt error
  */
-status_t verified_boot_get_boot_state(union tegrabl_bootimg_header *hdr,
+status_t verified_boot_get_boot_state(tegrabl_bootimg_header *hdr,
 									  void *kernel_dtb,
 									  boot_state_t *bs,
 									  struct rsa_public_key *boot_pub_key,
@@ -111,7 +111,7 @@ uint32_t smc_call(uint32_t arg0, uintptr_t arg1, uintptr_t arg2);
  * @return NO_ERROR if all process is successfully, else apt error
  */
 
-tegrabl_error_t verify_boot(union tegrabl_bootimg_header *hdr,
+tegrabl_error_t verify_boot(tegrabl_bootimg_header *hdr,
 							void *kernel_dtb, void *kernel_dtbo);
 
 #endif
