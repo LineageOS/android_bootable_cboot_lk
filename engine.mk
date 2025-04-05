@@ -58,6 +58,7 @@ GLOBAL_CFLAGS += -Werror=volatile-register-var -Werror=unused-variable -Werror=u
 GLOBAL_CFLAGS += -Werror=type-limits -Werror=format-extra-args -Werror=unused-but-set-variable -Werror=overflow
 GLOBAL_CFLAGS += -Werror=uninitialized -Werror=parentheses
 GLOBAL_CFLAGS += -Wextra
+GLOBAL_CFLAGS += -fplan9-extensions
 
 # Treat all compilation warnings as errors
 GLOBAL_CFLAGS += -Werror
