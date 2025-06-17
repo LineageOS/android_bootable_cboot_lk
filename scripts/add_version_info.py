@@ -40,4 +40,4 @@ if __name__ == "__main__":
         version_string = '-'.join([str(item) for item in text])
         sys.stdout.write('Appending version string: %s to %s\n' %
                                         (version_string, binfile))
-        f.write(struct.pack('%ds' % (length), version_string))
+        f.write(struct.pack('%ds' % (length), version_string.encode('utf-8')))
